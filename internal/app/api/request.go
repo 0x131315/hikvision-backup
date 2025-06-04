@@ -1,0 +1,69 @@
+package api
+
+import (
+	"encoding/xml"
+	"github.com/0x131315/hikvision-backup/internal/app/config"
+	"github.com/0x131315/hikvision-backup/internal/app/util"
+	"time"
+)
+
+type TimeSpanList struct {
+	TimeSpan TimeSpan `xml:"timeSpan"`
+}
+
+type CMSearchDescription struct {
+	XMLName              xml.Name     `xml:"CMSearchDescription"`
+	MaxResults           int          `xml:"maxResults"`
+	SearchResultPosition int          `xml:"searchResultPosition"`
+	TimeSpanList         TimeSpanList `xml:"timeSpanList"`
+	TrackID              int          `xml:"trackID"`
+	SearchID             string       `xml:"searchID"`
+}
+
+type DownloadRequest struct {
+	XMLName     xml.Name `xml:"downloadRequest"`
+	PlaybackURI string   `xml:"playbackURI"`
+}
+
+func buildSearchRequest(offset, limit int, timestart, timeend *time.Time) string {
+	if timestart == nil {
+		old := time.Now().AddDate(0, 0, -1*config.Get().ScanLastDays)
+		timestart = &old
+	}
+	if timeend == nil {
+		now := time.Now().UTC()
+		timeend = &now
+	}
+	req := &CMSearchDescription{
+		MaxResults:           limit,
+		SearchResultPosition: offset,
+		TrackID:              TypeVideo,
+		SearchID:             "search",
+		TimeSpanList: TimeSpanList{
+			TimeSpan: TimeSpan{
+				StartTime: timestart.Format(timeFormat),
+				EndTime:   timeend.Format(timeFormat),
+			},
+		},
+	}
+
+	return buildXml(req)
+}
+
+func buildDownloadRequest(file Video) string {
+	req := &DownloadRequest{
+		PlaybackURI: file.Url,
+	}
+
+	return buildXml(req)
+}
+
+func buildXml[T DownloadRequest | CMSearchDescription](req *T) string {
+	str, err := xml.MarshalIndent(req, "", "  ")
+	if err != nil {
+		util.FatalError("xml.MarshalIndent() failed", err)
+	}
+	body := string(str)
+
+	return body
+}
