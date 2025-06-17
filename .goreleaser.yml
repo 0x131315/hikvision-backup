@@ -25,7 +25,7 @@ archives:
     name_template: >-
       {{ .ProjectName }}_v{{ .Version }}_
       {{- if eq .Os "darwin" }}mac{{ else if eq .Os "windows" }}win{{ else }}{{ .Os }}{{ end }}_
-      {{ .Arch }}
+      {{- .Arch }}
     files:
       - LICENSE
       - README.md
