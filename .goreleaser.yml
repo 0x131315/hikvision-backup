@@ -21,7 +21,7 @@ builds:
 #      - windows
 
 archives:
-  - format: tar.gz
+  - formats: ['tar.gz']
     name_template: |-
       {{- $os := .Os | replace "darwin" "mac" | replace "windows" "win" -}}
       {{- $arch := .Arch | replace "amd64" "x64" | replace "386" "x86" | replace "arm" "armv7" -}}
@@ -31,7 +31,7 @@ archives:
       - README.md
     format_overrides:
       - goos: windows
-        format: zip
+        formats: ['zip']
 
 checksum:
   name_template: 'checksums.txt'
