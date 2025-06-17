@@ -1,0 +1,89 @@
+project_name: hikvision-backup
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - main: ./main.go
+    ldflags:
+      - "-X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.buildDate={{.Date}}"
+    env:
+      - CGO_ENABLED=0
+    goarch:
+      - amd64
+      - arm64
+    goos:
+      - linux
+      - darwin
+#      - windows
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}-v{{ .Version }}"
+    files:
+      - LICENSE
+      - README.md
+    format_overrides:
+      - goos: windows
+        format: zip
+    replacements:
+      darwin: mac
+      windows: win
+      linux: linux
+      amd64: x64
+      386: x86
+      arm: armv7
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  groups:
+    - title: "🚀 Feat"
+      regexp: '(?i)^(feat)'
+      order: 0
+    - title: '🏗️ Changes'
+      regexp: '(?i)^(add|new|rej|rm|rem|del|change)'
+      order: 1
+    - title: '🐛 Bugs'
+      regexp: '(?i)^(bug|fix|close)'
+      order: 2
+    - title: '🚨 Security'
+      regexp: '(?i)^(sec)'
+      order: 3
+    - title: '🔧 Supp'
+      regexp: '(?i)^(ref|improve|imp)'
+      order: 4
+    - title: '📚 Docs'
+      regexp: '(?i)^(docs|doc)'
+      order: 5
+    - title: '🎨 Style'
+      regexp: '(?i)^(style)'
+      order: 6
+    - title: '👷 CI'
+      regexp: '(?i)^(ci)'
+      order: 7
+    - title: '📦 Lib'
+      regexp: '(?i)^(lib)'
+      order: 8
+    - title: '🚧 WIP'
+      regexp: '(?i)^(wip)'
+      order: 9
+    - title: 'Misc'
+      order: 999
+  filters:
+    exclude:
+      - author: '(?i)^dependabot'
+      - '(?i)^test'
+      - 'merge'
+      - '(?i)^Merge (branch|pull request)'
+      - '(?i)^chore'
+
+release:
+  prerelease: auto
+  name_template: "Release {{.Version}}"
+  github:
+    owner: 0x131315
+    name: hikvision-backup
