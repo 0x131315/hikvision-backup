@@ -7,7 +7,7 @@ before:
     - go mod tidy
 
 builds:
-  - main: ./main.go ./version.go
+  - main: ./main.go
     ldflags:
       - "-X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.buildDate={{.Date}}"
     env:
