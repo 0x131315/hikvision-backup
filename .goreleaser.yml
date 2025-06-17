@@ -22,10 +22,11 @@ builds:
 
 archives:
   - formats: ['tar.gz']
-    name_template: |-
-      {{- $os := .Os | replace "darwin" "mac" | replace "windows" "win" -}}
-      {{- $arch := .Arch | replace "amd64" "x64" | replace "386" "x86" -}}
-      {{ .ProjectName }}_{{ $os }}-{{ $arch }}-v{{ .Version }}
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- if eq .Os "darwin" }}mac{{ else if eq .Os "windows" }}win{{ else }}{{ .Os }}{{ end }}-
+      {{- if eq .Arch "amd64" }}x64{{ else if eq .Arch "386" }}x86{{ else }}{{ .Arch }}{{ end }}-
+      v{{ .Version }}
     files:
       - LICENSE
       - README.md
