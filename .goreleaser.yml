@@ -32,13 +32,6 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
-    replacements:
-      darwin: mac
-      windows: win
-      linux: linux
-      amd64: x64
-      386: x86
-      arm: armv7
 
 checksum:
   name_template: 'checksums.txt'
