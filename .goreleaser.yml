@@ -25,7 +25,7 @@ archives:
     name_template: |-
       {{- $os := .Os | replace "darwin" "mac" | replace "windows" "win" -}}
       {{- $arch := .Arch | replace "amd64" "x64" | replace "386" "x86" | replace "arm" "armv7" -}}
-      {{ .ProjectName }}-{{ $os }}-{{ $arch }}-v{{ .Version }}
+      {{ .ProjectName }}_{{ $os }}-{{ $arch }}-v{{ .Version }}
     files:
       - LICENSE
       - README.md
