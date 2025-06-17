@@ -80,7 +80,7 @@ changelog:
 
 release:
   prerelease: auto
-  name_template: "Release {{.Version}}"
+  name_template: "Release v{{.Version}}"
   github:
     owner: 0x131315
     name: hikvision-backup
