@@ -24,7 +24,7 @@ archives:
   - formats: ['tar.gz']
     name_template: |-
       {{- $os := .Os | replace "darwin" "mac" | replace "windows" "win" -}}
-      {{- $arch := .Arch | replace "amd64" "x64" | replace "386" "x86" | replace "arm" "armv7" -}}
+      {{- $arch := .Arch | replace "amd64" "x64" | replace "386" "x86" -}}
       {{ .ProjectName }}_{{ $os }}-{{ $arch }}-v{{ .Version }}
     files:
       - LICENSE
