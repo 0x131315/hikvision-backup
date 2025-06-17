@@ -23,7 +23,7 @@ builds:
 archives:
   - formats: ['tar.gz']
     name_template: >-
-      {{ .ProjectName }}_v{{ .Version }}
+      {{ .ProjectName }}_v{{ .Version }}_
       {{- if eq .Os "darwin" }}mac{{ else if eq .Os "windows" }}win{{ else }}{{ .Os }}{{ end }}_
       {{ .Arch }}
     files:
