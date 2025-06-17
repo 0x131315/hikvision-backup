@@ -73,11 +73,10 @@ changelog:
       order: 999
   filters:
     exclude:
-      - author: '(?i)^dependabot'
       - '(?i)^test'
       - 'merge'
       - '(?i)^Merge (branch|pull request)'
-      - '(?i)^chore'
+      - '(?i)^(chore|dependabot)'
 
 release:
   prerelease: auto
