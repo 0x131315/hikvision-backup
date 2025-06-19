@@ -24,6 +24,9 @@ NEW_VERSION_MINOR := v$(MAJOR).$(NEW_MINOR).0
 NEW_MAJOR := $(shell echo $$(( $(MAJOR) + 1 )))
 NEW_VERSION_MAJOR := v$(NEW_MAJOR).0.0
 
+NEW_VERSION_ALPHA := $(NEW_VERSION_PATCH)-alpha
+NEW_VERSION_BETA := $(NEW_VERSION_PATCH)-beta
+
 COMMIT  ?= $(shell git rev-parse --short HEAD)
 DATE    ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
@@ -34,6 +37,14 @@ LDFLAGS = -ldflags="${LDFLAGS_STRING}"
 build:
 	@echo "==> Building ${APP_NAME}..."
 	go build ${LDFLAGS} -o ${APP_NAME} .
+
+next-alpha:
+	@echo "==> New ${APP_NAME} version $(NEW_VERSION_ALPHA)..."
+	git tag $(NEW_VERSION_ALPHA)
+
+next-beta:
+	@echo "==> New ${APP_NAME} version $(NEW_VERSION_BETA)..."
+	git tag $(NEW_VERSION_BETA)
 
 next-patch:
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_PATCH)..."
