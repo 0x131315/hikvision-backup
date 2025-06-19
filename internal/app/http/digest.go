@@ -5,8 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/0x131315/hikvision-backup/internal/app/config"
-	"github.com/0x131315/hikvision-backup/internal/app/util"
+	"log/slog"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 )
@@ -69,7 +70,8 @@ func buildDigestAuth(ctx *context, method, uri string) string {
 
 func parseWWWAuthenticate(header string) digestChallenge {
 	if !strings.HasPrefix(header, "Digest ") {
-		util.FatalError("Expected 'Digest' header")
+		slog.Error("Expected 'Digest' header")
+		os.Exit(1)
 	}
 
 	result := digestChallenge{}
@@ -79,7 +81,8 @@ func parseWWWAuthenticate(header string) digestChallenge {
 			key := kv[0]
 			val := strings.Trim(kv[1], `"`)
 			if val == "" {
-				util.FatalError(fmt.Sprintf("Empty digest key: %s", key))
+				slog.Error("Empty digest value", "key", key)
+				os.Exit(1)
 			}
 
 			switch key {

@@ -2,8 +2,9 @@ package api
 
 import (
 	"encoding/xml"
-	"github.com/0x131315/hikvision-backup/internal/app/util"
+	"log/slog"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 )
@@ -46,7 +47,8 @@ func parseResponse(data string) *CMSearchResult {
 	var result CMSearchResult
 	err := xml.Unmarshal([]byte(data), &result)
 	if err != nil {
-		util.FatalError("Failed to parse XML data", err)
+		slog.Error("Failed to parse XML data", "error", err)
+		os.Exit(1)
 	}
 
 	return &result
@@ -55,21 +57,25 @@ func parseResponse(data string) *CMSearchResult {
 func buildVideo(item SearchMatchItem) Video {
 	u, err := url.Parse(item.MediaSegment.PlaybackURI)
 	if err != nil {
-		util.FatalError("Parse url error", err)
+		slog.Error("Failed to parse url", "url", item.MediaSegment.PlaybackURI, "error", err)
+		os.Exit(1)
 	}
 	sizeStr := u.Query().Get("size")
 	size, err := strconv.Atoi(sizeStr)
 	if err != nil {
-		util.FatalError("invalid size: ", err)
+		slog.Error("Failed to parse size", "size", sizeStr, "error", err)
+		os.Exit(1)
 	}
 
 	startTime, err := time.Parse(timeFormat, item.TimeSpan.StartTime)
 	if err != nil {
-		util.FatalError("invalid starttime: ", err)
+		slog.Error("Failed to parse start time", "time", item.TimeSpan.StartTime, "error", err)
+		os.Exit(1)
 	}
 	endTime, err := time.Parse(timeFormat, item.TimeSpan.EndTime)
 	if err != nil {
-		util.FatalError("invalid endtime: ", err)
+		slog.Error("Failed to parse end time", "time", item.TimeSpan.EndTime, "error", err)
+		os.Exit(1)
 	}
 	duration := endTime.Sub(startTime)
 

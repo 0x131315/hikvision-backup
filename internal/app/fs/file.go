@@ -1,9 +1,8 @@
 package fs
 
 import (
-	"fmt"
 	"github.com/0x131315/hikvision-backup/internal/app/config"
-	"github.com/0x131315/hikvision-backup/internal/app/util"
+	"log/slog"
 	"os"
 )
 
@@ -12,13 +11,16 @@ func init() {
 }
 
 func RemoveFile(path string) {
+	slog.Debug("remove file", "path", path)
 	if !IsFileExist(path) {
-		util.FatalError("Not found file for remove: " + path)
+		slog.Error("file not exist", "path", path)
+		os.Exit(1)
 	}
 
 	err := os.Remove(path)
 	if err != nil {
-		util.FatalError("Failed to remove file: "+path, err)
+		slog.Error("Failed to remove file", "path", path, "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -36,7 +38,8 @@ func IsFileExist(path string) bool {
 		return false
 	}
 	if info.IsDir() {
-		util.FatalError("The path is not a file: " + path)
+		slog.Error("The path is not a file", "path", path, "info", info)
+		os.Exit(1)
 	}
 
 	return true
@@ -48,7 +51,8 @@ func isDirExist(path string) bool {
 		return false
 	}
 	if !info.IsDir() {
-		util.FatalError("The path is not a directory: " + path)
+		slog.Error("The path is not a directory", "path", path, "info", info)
+		os.Exit(1)
 	}
 
 	return true
@@ -60,15 +64,17 @@ func createDir(path string) {
 	}
 	err := os.MkdirAll(path, 0755)
 	if err != nil {
-		util.FatalError("Failed to create a directory: "+path, err)
+		slog.Error("Failed to create a directory", "path", path, "error", err)
+		os.Exit(1)
 	}
-	fmt.Println("Directory created: ", path)
+	slog.Debug("Directory created", "path", path)
 }
 
 func getPathInfo(path string) (os.FileInfo, error) {
 	info, err := os.Stat(path)
 	if err != nil && !os.IsNotExist(err) {
-		util.FatalError("Failed check path: "+path, err)
+		slog.Error("Failed check path", "path", path, "error", err)
+		os.Exit(1)
 	}
 	return info, err
 }

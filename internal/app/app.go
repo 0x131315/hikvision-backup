@@ -1,13 +1,14 @@
 package app
 
 import (
+	"fmt"
 	"github.com/0x131315/hikvision-backup/internal/app/api"
 	"github.com/0x131315/hikvision-backup/internal/app/config"
 	"github.com/0x131315/hikvision-backup/internal/app/fs"
 	"github.com/0x131315/hikvision-backup/internal/app/http"
 	"github.com/0x131315/hikvision-backup/internal/app/util"
 	"io"
-	"log"
+	"log/slog"
 	"math"
 	"os"
 	"path/filepath"
@@ -16,23 +17,17 @@ import (
 
 const retryCnt = 3
 
-var logger *log.Logger
-
 type File struct {
 	name string
 	path string
 	size int
 }
 
-func init() {
-	logger = util.GetLogger()
-}
-
 func DownloadVideos() {
-	logger.Println("Request remote file list...")
+	slog.Info("Request remote file list...")
 
 	videos := api.GetVideoList()
-	logger.Printf("Remote files: %d", len(videos))
+	slog.Info("Request remote file list complete", "count", len(videos))
 
 	dates := make([]string, 0, len(videos))
 	for date := range videos {
@@ -41,26 +36,25 @@ func DownloadVideos() {
 	sort.Strings(dates)
 
 	for idx, date := range dates {
-		logger.Printf("Request remote file: %d/%d. Left: %d", idx+1, len(dates), len(dates)-(idx+1))
+		slog.Info(fmt.Sprintf("Request remote file: %d/%d. Left: %d", idx+1, len(dates), len(dates)-(idx+1)))
 		saveVideo(videos[date])
-		logger.Println("")
 	}
 
 }
 func saveVideo(video api.Video) {
 	file := buildFile(video)
-	logger.Printf("processing %s", file.name)
+	slog.Info("processing file", "file", file.name, "size", util.FormatFileSize(file.size))
 
 	if fs.IsFileExist(file.path) {
+		slog.Debug("file exist", "path", file.path)
 		filesize := fs.FileSize(file.path)
 		if filesize >= file.size {
-			logger.Println("exist and valid")
+			slog.Debug("file valid, skip downloading")
 			return
 		}
-		logger.Printf("exist and invalid: loaded %s/%s, diff %s. Removed",
-			util.FormatFileSize(filesize),
-			util.FormatFileSize(file.size),
-			util.FormatFileSize(int(math.Abs(float64(file.size-filesize)))),
+		slog.Debug("file invalid",
+			"loaded", fmt.Sprintf("%s/%s", util.FormatFileSize(filesize), util.FormatFileSize(file.size)),
+			"diff", util.FormatFileSize(int(math.Abs(float64(file.size-filesize)))),
 		)
 		fs.RemoveFile(file.path)
 	}
@@ -70,18 +64,19 @@ func saveVideo(video api.Video) {
 	for {
 		outFile, err := os.Create(file.path)
 		if err != nil {
-			util.FatalError("Failed to create file: "+file.path, err)
+			slog.Error("Failed to create file", "path", file.path, "err", err)
+			os.Exit(1)
 		}
 
-		logger.Println("start download")
+		slog.Debug("start download", "file", file.name)
 		videoResp = api.GetVideo(video)
 		if videoResp == nil {
-			logger.Println("removed")
+			slog.Debug("download failed", "file", file.name)
 			fs.RemoveFile(file.path)
 			return
 		}
 
-		logger.Printf("writing start, %s", util.FormatFileSize(videoResp.Size))
+		slog.Debug("writing start", "file", file.name, "expected size", util.FormatFileSize(videoResp.Size))
 		writer := io.MultiWriter(outFile, util.BuildProgressBar(videoResp.Size, "b"))
 		_, err = io.Copy(writer, videoResp.Stream)
 		videoResp.Stream.Close()
@@ -89,34 +84,32 @@ func saveVideo(video api.Video) {
 		if err == nil {
 			break
 		}
-		logger.Printf("Failed to write file %s: %v", file.name, err)
+		slog.Error("Failed to write file", "file", file.name, "err", err)
 		badCnt++
 		if badCnt > retryCnt {
-			logger.Println("bad file skipped")
+			slog.Debug("bad file skipped", "file", file.name)
 			break
 		}
-		logger.Printf("retry: %d/%d\n", badCnt, retryCnt)
-		logger.Println("removed")
+		slog.Debug(fmt.Sprintf("retry: %d/%d", badCnt, retryCnt))
 		fs.RemoveFile(file.path)
 	}
 	filesize := fs.FileSize(file.path)
-	logger.Printf("writing complete, %s", util.FormatFileSize(filesize))
+	slog.Debug("writing complete", "file", file.name, "size", util.FormatFileSize(filesize))
 	if badCnt > retryCnt {
 		return
 	}
 
-	logger.Println("validate")
+	slog.Debug("validate")
 	if filesize != videoResp.Size {
-		logger.Printf("validate failed: write %s/%s, diff %s. File removed",
-			util.FormatFileSize(filesize),
-			util.FormatFileSize(videoResp.Size),
-			util.FormatFileSize(int(math.Abs(float64(videoResp.Size-filesize)))),
+		slog.Error("file size mismatch",
+			"loaded", fmt.Sprintf("%s/%s", util.FormatFileSize(filesize), util.FormatFileSize(videoResp.Size)),
+			"diff", util.FormatFileSize(int(math.Abs(float64(videoResp.Size-filesize)))),
 		)
 		fs.RemoveFile(file.path)
 		return
 	}
 
-	logger.Println("complete")
+	slog.Debug("complete")
 }
 
 func buildFile(video api.Video) File {

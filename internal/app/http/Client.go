@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/0x131315/hikvision-backup/internal/app/config"
-	"github.com/0x131315/hikvision-backup/internal/app/util"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -23,10 +23,8 @@ const retryCnt = 3
 
 var client *http.Client
 var authHeader string
-var logger *log.Logger
 
 func init() {
-	logger = util.GetLogger()
 	if config.Get().NoProxy {
 		client = &http.Client{
 			Transport: &http.Transport{
@@ -39,10 +37,17 @@ func init() {
 }
 
 func Send(method, uri, body string) *Response {
-	logger.Printf("http %s %s %s\n", method, uri,
-		strings.Replace(strings.Replace(body, "\n", "", -1), " ", "", -1),
+	slog.Debug("http request",
+		"method", method,
+		"uri", uri,
+		"body", strings.Replace(strings.Replace(body, "\n", "", -1), " ", "", -1),
 	)
 	resp := doRequest(method, uri, body)
+	slog.Debug("http response",
+		"code", resp.code,
+		"size", resp.Size,
+		"digest", resp.digest,
+	)
 
 	var badCnt int
 
@@ -50,10 +55,10 @@ func Send(method, uri, body string) *Response {
 		resp.Stream.Close()
 		badCnt++
 		if badCnt > retryCnt {
-			logger.Println("http retry failed, skipped")
+			slog.Debug("http retry failed, skipped")
 			return nil
 		}
-		logger.Printf("http error %d, send auth %d/%d\n", resp.code, badCnt, retryCnt)
+		slog.Debug("send auth", "count", fmt.Sprintf("%d/%d", badCnt, retryCnt))
 		updateDigest(resp.digest)
 		authHeader = getNextAuthHeader(method, uri)
 		resp = doRequest(method, uri, body)
@@ -64,16 +69,16 @@ func Send(method, uri, body string) *Response {
 		resp.Stream.Close()
 		badCnt++
 		if badCnt > retryCnt {
-			logger.Println("http retry failed, skipped")
+			slog.Debug("http retry failed, skipped")
 			return nil
 		}
-		logger.Printf("http error %d, resend request %d/%d\n", resp.code, badCnt, retryCnt)
+		slog.Debug("resend request", "count", fmt.Sprintf("%d/%d", badCnt, retryCnt))
 		resp = doRequest(method, uri, body)
 	}
 
 	if resp.code != http.StatusOK {
-		logger.Printf("http error %d\n", resp.code)
-		util.FatalError(fmt.Sprintf("http status code: %d. Reqest: %s %s", resp.code, method, uri))
+		slog.Error("http error", "code", resp.code)
+		os.Exit(1)
 	}
 
 	return resp
@@ -82,14 +87,16 @@ func Send(method, uri, body string) *Response {
 func doRequest(method, uri, body string) *Response {
 	req, err := http.NewRequest(method, buildUrl(uri), bytes.NewBufferString(body))
 	if err != nil {
-		util.FatalError("Failed to build request", err)
+		slog.Error("Failed to build request", "error", err)
+		os.Exit(1)
 	}
 	req.Header.Set("Authorization", authHeader)
 	req.Header.Set("Content-Type", contentType)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		util.FatalError("Failed to send request", err)
+		slog.Error("Failed to send request", "error", err)
+		os.Exit(1)
 	}
 
 	return &Response{

@@ -3,7 +3,8 @@ package api
 import (
 	"encoding/xml"
 	"github.com/0x131315/hikvision-backup/internal/app/config"
-	"github.com/0x131315/hikvision-backup/internal/app/util"
+	"log/slog"
+	"os"
 	"time"
 )
 
@@ -61,7 +62,8 @@ func buildDownloadRequest(file Video) string {
 func buildXml[T DownloadRequest | CMSearchDescription](req *T) string {
 	str, err := xml.MarshalIndent(req, "", "  ")
 	if err != nil {
-		util.FatalError("xml.MarshalIndent() failed", err)
+		slog.Error("xml.MarshalIndent() failed", "error", err)
+		os.Exit(1)
 	}
 	body := string(str)
 

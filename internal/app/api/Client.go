@@ -1,11 +1,12 @@
 package api
 
 import (
+	"fmt"
 	"github.com/0x131315/hikvision-backup/internal/app/config"
 	"github.com/0x131315/hikvision-backup/internal/app/http"
-	"github.com/0x131315/hikvision-backup/internal/app/util"
 	"io"
-	"log"
+	"log/slog"
+	"os"
 	"time"
 )
 
@@ -18,8 +19,6 @@ const limit = 200
 const searchPath = "/ISAPI/ContentMgmt/search"
 const downloadPath = "/ISAPI/ContentMgmt/download"
 
-var logger *log.Logger
-
 type Video struct {
 	Url      string
 	Time     time.Time
@@ -27,10 +26,6 @@ type Video struct {
 	Size     int
 }
 type VideoList map[string]Video
-
-func init() {
-	logger = util.GetLogger()
-}
 
 func GetVideoList() VideoList {
 	var result = make(VideoList)
@@ -50,7 +45,7 @@ func GetVideoList() VideoList {
 				),
 			)
 			if offset == 0 {
-				logger.Printf("found files: %d\n", resp.TotalMatches)
+				slog.Info("found files", "count", resp.TotalMatches)
 			}
 			offset += limit
 
@@ -59,7 +54,10 @@ func GetVideoList() VideoList {
 			}
 
 			cnt += len(resp.MatchList)
-			logger.Printf("requested file info: %d/%d, total: %d\n", cnt, resp.TotalMatches, len(result)+len(resp.MatchList))
+			slog.Debug("requested file info",
+				"count", fmt.Sprintf("%d/%d", cnt, resp.TotalMatches),
+				"total", len(result)+len(resp.MatchList),
+			)
 
 			for _, item := range resp.MatchList {
 				video = buildVideo(item)
@@ -92,7 +90,8 @@ func respToStr(resp io.ReadCloser) string {
 	defer resp.Close()
 	buff, err := io.ReadAll(resp)
 	if err != nil {
-		util.FatalError("Failed to read response body", err)
+		slog.Error("Failed to read response body", "error", err)
+		os.Exit(1)
 	}
 	return string(buff)
 }

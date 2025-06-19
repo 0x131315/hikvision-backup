@@ -1,8 +1,8 @@
 package config
 
 import (
-	"github.com/0x131315/hikvision-backup/internal/app/util"
 	_ "github.com/joho/godotenv/autoload"
+	"log/slog"
 	"os"
 	"strconv"
 )
@@ -30,12 +30,14 @@ func Get() Config {
 func buildConfig() Config {
 	host := os.Getenv("CAM_HOST")
 	if host == "" {
-		util.FatalError("CAM_HOST environment variable not set")
+		slog.Error("CAM_HOST environment variable not set")
+		os.Exit(1)
 	}
 
 	user := os.Getenv("CAM_USER")
 	if user == "" {
-		util.FatalError("CAM_USER environment variable not set")
+		slog.Error("CAM_USER environment variable not set")
+		os.Exit(1)
 	}
 
 	pass := os.Getenv("CAM_PASS")
@@ -47,23 +49,27 @@ func buildConfig() Config {
 
 	downloadDir := os.Getenv("DOWNLOAD_DIR")
 	if downloadDir == "" {
-		util.FatalError("DOWNLOAD_DIR environment variable not set")
+		slog.Error("DOWNLOAD_DIR environment variable not set")
+		os.Exit(1)
 	}
 
 	scanLastDays := os.Getenv("SCAN_LAST_DAYS")
 	if scanLastDays == "" {
-		util.FatalError("SCAN_LAST_DAYS environment variable not set")
+		slog.Error("SCAN_LAST_DAYS environment variable not set")
+		os.Exit(1)
 	}
 
 	lastDays, err := strconv.Atoi(scanLastDays)
 	if err != nil {
-		util.FatalError("SCAN_LAST_DAYS environment variable not numeric")
+		slog.Error("SCAN_LAST_DAYS environment variable not numeric")
+		os.Exit(1)
 	}
 	if lastDays < 0 {
 		lastDays = lastDays * -1
 	}
 	if lastDays < 1 {
-		util.FatalError("SCAN_LAST_DAYS environment variable smaller than 1")
+		slog.Error("SCAN_LAST_DAYS environment variable smaller than 1")
+		os.Exit(1)
 	}
 
 	conf := Config{
