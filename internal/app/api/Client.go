@@ -30,7 +30,8 @@ type Video struct {
 type VideoList map[string]Video
 
 func GetVideoList(ctx context.Context) VideoList {
-	var result = make(VideoList)
+	slog.Info("Request remote file list...")
+	var listVideos = make(VideoList)
 	var timebreak = time.Now().UTC()
 	var timestart = time.Now().UTC().AddDate(0, 0, -1*config.Get().ScanLastDays)
 	var timeend = timestart.AddDate(0, 1, 0)
@@ -43,7 +44,7 @@ func GetVideoList(ctx context.Context) VideoList {
 		for {
 			select {
 			case <-ctx.Done():
-				return result
+				return listVideos
 			default:
 			}
 
@@ -64,12 +65,12 @@ func GetVideoList(ctx context.Context) VideoList {
 			cnt += len(resp.MatchList)
 			slog.Debug("requested file info",
 				"count", fmt.Sprintf("%d/%d", cnt, resp.TotalMatches),
-				"total", len(result)+len(resp.MatchList),
+				"total", len(listVideos)+len(resp.MatchList),
 			)
 
 			for _, item := range resp.MatchList {
 				video = buildVideo(item)
-				result[video.Time.Format(timeFormat)] = video
+				listVideos[video.Time.Format(timeFormat)] = video
 			}
 
 			if cnt >= resp.TotalMatches {
@@ -87,7 +88,9 @@ func GetVideoList(ctx context.Context) VideoList {
 		}
 	}
 
-	return result
+	slog.Info("Request remote file list complete", "count", len(listVideos))
+
+	return listVideos
 }
 
 func GetVideo(ctx context.Context, video Video) *http.Response {

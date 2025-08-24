@@ -29,9 +29,7 @@ type File struct {
 func DownloadVideos(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	slog.Info("Request remote file list...")
 	videos := api.GetVideoList(ctx)
-	slog.Info("Request remote file list complete", "count", len(videos))
 
 	dates := make([]string, 0, len(videos))
 	for date := range videos {
