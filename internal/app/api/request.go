@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/xml"
-	"github.com/0x131315/hikvision-backup/internal/app/config"
 	"log/slog"
 	"os"
 	"time"
@@ -26,9 +25,9 @@ type DownloadRequest struct {
 	PlaybackURI string   `xml:"playbackURI"`
 }
 
-func buildSearchRequest(offset, limit int, timestart, timeend *time.Time) string {
+func buildSearchRequest(offset, limit, lastDays int, timestart, timeend *time.Time) string {
 	if timestart == nil {
-		old := time.Now().AddDate(0, 0, -1*config.Get().ScanLastDays)
+		old := time.Now().AddDate(0, 0, -1*lastDays)
 		timestart = &old
 	}
 	if timeend == nil {

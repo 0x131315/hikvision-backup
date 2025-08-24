@@ -1,13 +1,12 @@
 package fs
 
 import (
-	"github.com/0x131315/hikvision-backup/internal/app/config"
 	"log/slog"
 	"os"
 )
 
-func init() {
-	createDir(config.Get().DownloadDir)
+func Init(downloadDir string) {
+	createDir(downloadDir)
 }
 
 func RemoveFile(path string) {

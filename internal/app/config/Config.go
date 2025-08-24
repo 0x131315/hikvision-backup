@@ -1,10 +1,11 @@
 package config
 
 import (
-	_ "github.com/joho/godotenv/autoload"
 	"log/slog"
 	"os"
 	"strconv"
+
+	_ "github.com/joho/godotenv/autoload"
 )
 
 type Config struct {
@@ -14,20 +15,24 @@ type Config struct {
 	NoProxy      bool
 	DownloadDir  string
 	ScanLastDays int
+	RetryCnt     int
+	LogLvl       slog.Level
 }
 
 var config *Config
 
-func init() {
-	conf := buildConfig()
+func Init(logLvl slog.Level) Config {
+	conf := buildConfig(logLvl)
 	config = &conf
+
+	return conf
 }
 
 func Get() Config {
 	return *config
 }
 
-func buildConfig() Config {
+func buildConfig(logLvl slog.Level) Config {
 	host := os.Getenv("CAM_HOST")
 	if host == "" {
 		slog.Error("CAM_HOST environment variable not set")
@@ -72,6 +77,17 @@ func buildConfig() Config {
 		os.Exit(1)
 	}
 
+	envRetryCnt := os.Getenv("HTTP_RETRY_CNT")
+	if envRetryCnt == "" {
+		slog.Debug("HTTP_RETRY_CNT environment variable not set")
+		envRetryCnt = "3"
+	}
+	retryCnt, err := strconv.Atoi(envRetryCnt)
+	if err != nil {
+		slog.Error("HTTP_RETRY_CNT environment variable not numeric")
+		os.Exit(1)
+	}
+
 	conf := Config{
 		Host:         host,
 		User:         user,
@@ -79,6 +95,8 @@ func buildConfig() Config {
 		NoProxy:      noProxy == "true",
 		DownloadDir:  downloadDir,
 		ScanLastDays: lastDays,
+		RetryCnt:     retryCnt,
+		LogLvl:       logLvl,
 	}
 
 	return conf

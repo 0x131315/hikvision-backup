@@ -4,12 +4,13 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"github.com/0x131315/hikvision-backup/internal/app/config"
 	"log/slog"
 	"math/rand"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/0x131315/hikvision-backup/internal/app/config"
 )
 
 type digestChallenge struct {
@@ -18,42 +19,43 @@ type digestChallenge struct {
 	nonce string
 }
 
-type context struct {
+type digestContext struct {
 	digest digestChallenge
 	conf   config.Config
 	cnonce string
 	nc     int
 }
 
-var ctx *context
-var rnd *rand.Rand
-
-func init() {
-	rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
-	ctx = &context{}
-	ctx.conf = config.Get()
+type Digest struct {
+	ctx *digestContext
+	rnd *rand.Rand
 }
 
-func updateDigest(digestHeader string) {
-	ctx.nc = 0
-	ctx.digest = parseWWWAuthenticate(digestHeader)
+func NewDigest(conf config.Config) *Digest {
+	rndg := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return &Digest{ctx: &digestContext{conf: conf}, rnd: rndg}
 }
 
-func getNextAuthHeader(method, uri string) string {
-	ctx.nc++
-	ctx.cnonce = randomCnonce()
-
-	return buildDigestAuth(ctx, method, uri)
+func (d *Digest) updateDigest(digestHeader string) {
+	d.ctx.nc = 0
+	d.ctx.digest = parseWWWAuthenticate(digestHeader)
 }
 
-func buildDigestAuth(ctx *context, method, uri string) string {
-	username := ctx.conf.User
-	password := ctx.conf.Pass
-	realm := ctx.digest.realm
-	nonce := ctx.digest.nonce
-	qop := ctx.digest.qop
-	nc := ctx.nc
-	cnonce := ctx.cnonce
+func (d *Digest) getNextAuthHeader(method, uri string) string {
+	d.ctx.nc++
+	d.ctx.cnonce = d.randomCnonce()
+
+	return d.buildDigestAuth(method, uri)
+}
+
+func (d *Digest) buildDigestAuth(method, uri string) string {
+	username := d.ctx.conf.User
+	password := d.ctx.conf.Pass
+	realm := d.ctx.digest.realm
+	nonce := d.ctx.digest.nonce
+	qop := d.ctx.digest.qop
+	nc := d.ctx.nc
+	cnonce := d.ctx.cnonce
 
 	ha1 := md5Hex(fmt.Sprintf("%s:%s:%s", username, realm, password))
 	ha2 := md5Hex(fmt.Sprintf("%s:%s", method, uri))
@@ -103,11 +105,11 @@ func md5Hex(s string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func randomCnonce() string {
+func (d *Digest) randomCnonce() string {
 	const letters = "abcdef0123456789"
 	b := make([]byte, 16)
 	for i := range b {
-		b[i] = letters[rnd.Intn(len(letters))]
+		b[i] = letters[d.rnd.Intn(len(letters))]
 	}
 	return string(b)
 }

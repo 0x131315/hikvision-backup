@@ -18,38 +18,56 @@ import (
 	"github.com/0x131315/hikvision-backup/internal/app/util"
 )
 
-const retryCnt = 3
-
 type File struct {
 	name string
 	path string
 	size int
 }
 
-func DownloadVideos(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	videos := api.GetVideoList(ctx)
-
-	dates := make([]string, 0, len(videos))
-	for date := range videos {
-		dates = append(dates, date)
-	}
-	sort.Strings(dates)
-
-	for idx, date := range dates {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		slog.Info(fmt.Sprintf("Request remote file: %d/%d. Left: %d", idx+1, len(dates), len(dates)-(idx+1)))
-		saveVideo(ctx, videos[date])
-	}
-
+type App struct {
+	ctx  context.Context
+	api  *api.ApiClient
+	conf config.Config
 }
-func saveVideo(ctx context.Context, video api.Video) {
+
+func NewApp(ctx context.Context, logLvl slog.Level) *App {
+	conf := config.Init(logLvl)
+	return &App{ctx: ctx, api: api.NewApiClient(ctx, conf), conf: conf}
+}
+
+func (app *App) Conf() config.Config {
+	return app.conf
+}
+
+func (app *App) DownloadVideos() {
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		videos := app.api.GetVideoList()
+
+		dates := make([]string, 0, len(videos))
+		for date := range videos {
+			dates = append(dates, date)
+		}
+		sort.Strings(dates)
+
+		for idx, date := range dates {
+			select {
+			case <-app.ctx.Done():
+				return
+			default:
+			}
+
+			slog.Info(fmt.Sprintf("Request remote file: %d/%d. Left: %d", idx+1, len(dates), len(dates)-(idx+1)))
+			app.saveVideo(videos[date])
+		}
+	}()
+
+	wg.Wait()
+}
+func (app *App) saveVideo(video api.Video) {
 	file := buildFile(video)
 	slog.Info("processing file", "file", file.name, "size", util.FormatFileSize(file.size))
 
@@ -69,6 +87,7 @@ func saveVideo(ctx context.Context, video api.Video) {
 
 	var videoResp *http.Response
 	var badCnt int
+	retryCnt := app.conf.RetryCnt
 	for {
 		outFile, err := os.Create(file.path)
 		if err != nil {
@@ -77,7 +96,7 @@ func saveVideo(ctx context.Context, video api.Video) {
 		}
 
 		slog.Debug("start download", "file", file.name)
-		videoResp = api.GetVideo(ctx, video)
+		videoResp = app.api.GetVideo(video)
 		if videoResp == nil {
 			slog.Debug("download failed", "file", file.name)
 			fs.RemoveFile(file.path)
@@ -97,7 +116,7 @@ func saveVideo(ctx context.Context, video api.Video) {
 
 		//cancel branch
 		select {
-		case <-ctx.Done():
+		case <-app.ctx.Done():
 			fs.RemoveFile(file.path)
 			return
 		default:

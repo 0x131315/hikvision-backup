@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
 	"github.com/0x131315/hikvision-backup/internal/app"
+	"github.com/0x131315/hikvision-backup/internal/app/fs"
 )
 
 func main() {
@@ -30,16 +30,16 @@ func main() {
 		os.Exit(0)
 	}
 
-	level := slog.LevelInfo
+	logLvl := slog.LevelInfo
 	if len(os.Args) > 1 && os.Args[1] == "-vv" {
-		level = slog.LevelDebug
+		logLvl = slog.LevelDebug
 	}
-	initLogger(level)
+	initLogger(logLvl)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go app.DownloadVideos(ctx, &wg)
+	App := app.NewApp(ctx, logLvl)
+	fs.Init(App.Conf().DownloadDir)
 
-	wg.Wait()
+	App.DownloadVideos()
+
 	slog.Debug("shutting down")
 }

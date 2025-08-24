@@ -29,11 +29,21 @@ type Video struct {
 }
 type VideoList map[string]Video
 
-func GetVideoList(ctx context.Context) VideoList {
+type ApiClient struct {
+	ctx        context.Context
+	httpClient *http.Client
+	conf       config.Config
+}
+
+func NewApiClient(ctx context.Context, conf config.Config) *ApiClient {
+	return &ApiClient{ctx: ctx, httpClient: http.NewHttpClient(ctx, conf), conf: conf}
+}
+
+func (api *ApiClient) GetVideoList() VideoList {
 	slog.Info("Request remote file list...")
 	var listVideos = make(VideoList)
 	var timebreak = time.Now().UTC()
-	var timestart = time.Now().UTC().AddDate(0, 0, -1*config.Get().ScanLastDays)
+	var timestart = time.Now().UTC().AddDate(0, 0, -1*api.conf.ScanLastDays)
 	var timeend = timestart.AddDate(0, 1, 0)
 	var cnt int
 	var resp *CMSearchResult
@@ -43,14 +53,14 @@ func GetVideoList(ctx context.Context) VideoList {
 	for {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-api.ctx.Done():
 				return listVideos
 			default:
 			}
 
 			resp = parseResponse(
 				respToStr(
-					http.Send("POST", searchPath, buildSearchRequest(offset, limit, &timestart, &timeend)).Stream,
+					api.httpClient.Send("POST", searchPath, buildSearchRequest(offset, limit, api.conf.ScanLastDays, &timestart, &timeend)).Stream,
 				),
 			)
 			if offset == 0 {
@@ -93,12 +103,12 @@ func GetVideoList(ctx context.Context) VideoList {
 	return listVideos
 }
 
-func GetVideo(ctx context.Context, video Video) *http.Response {
-	resp := http.Send("GET", downloadPath, buildDownloadRequest(video))
+func (api *ApiClient) GetVideo(video Video) *http.Response {
+	resp := api.httpClient.Send("GET", downloadPath, buildDownloadRequest(video))
 
 	if resp != nil {
 		resp.Stream = &ctxReadCloser{
-			ctx:    ctx,
+			ctx:    api.ctx,
 			reader: resp.Stream,
 		}
 	}

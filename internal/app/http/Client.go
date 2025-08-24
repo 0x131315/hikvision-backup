@@ -2,13 +2,15 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"github.com/0x131315/hikvision-backup/internal/app/config"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/0x131315/hikvision-backup/internal/app/config"
 )
 
 type Response struct {
@@ -18,31 +20,36 @@ type Response struct {
 	digest string
 }
 
-const contentType = "application/xml"
-const retryCnt = 3
+type Client struct {
+	ctx        context.Context
+	client     *http.Client
+	conf       config.Config
+	digest     *Digest
+	authHeader string
+}
 
-var client *http.Client
-var authHeader string
+func NewHttpClient(ctx context.Context, conf config.Config) *Client {
+	client := &http.Client{}
 
-func init() {
-	if config.Get().NoProxy {
+	//ignore proxy in env variables (for debug sessions)
+	if conf.NoProxy {
 		client = &http.Client{
 			Transport: &http.Transport{
 				Proxy: nil, // Отключаем использование прокси
 			},
 		}
-	} else {
-		client = &http.Client{}
 	}
+
+	return &Client{ctx: ctx, client: client, conf: conf, digest: NewDigest(conf)}
 }
 
-func Send(method, uri, body string) *Response {
+func (c *Client) Send(method, uri, body string) *Response {
 	slog.Debug("http request",
 		"method", method,
 		"uri", uri,
 		"body", strings.Replace(strings.Replace(body, "\n", "", -1), " ", "", -1),
 	)
-	resp := doRequest(method, uri, body)
+	resp := c.doRequest(method, uri, body)
 	slog.Debug("http response",
 		"code", resp.code,
 		"size", resp.Size,
@@ -50,6 +57,7 @@ func Send(method, uri, body string) *Response {
 	)
 
 	var badCnt int
+	retryCnt := c.conf.RetryCnt
 
 	for resp.code == http.StatusUnauthorized {
 		resp.Stream.Close()
@@ -59,9 +67,9 @@ func Send(method, uri, body string) *Response {
 			return nil
 		}
 		slog.Debug("send auth", "count", fmt.Sprintf("%d/%d", badCnt, retryCnt))
-		updateDigest(resp.digest)
-		authHeader = getNextAuthHeader(method, uri)
-		resp = doRequest(method, uri, body)
+		c.digest.updateDigest(resp.digest)
+		c.authHeader = c.digest.getNextAuthHeader(method, uri)
+		resp = c.doRequest(method, uri, body)
 	}
 
 	badCnt = 0
@@ -73,7 +81,7 @@ func Send(method, uri, body string) *Response {
 			return nil
 		}
 		slog.Debug("resend request", "count", fmt.Sprintf("%d/%d", badCnt, retryCnt))
-		resp = doRequest(method, uri, body)
+		resp = c.doRequest(method, uri, body)
 	}
 
 	if resp.code != http.StatusOK {
@@ -84,16 +92,16 @@ func Send(method, uri, body string) *Response {
 	return resp
 }
 
-func doRequest(method, uri, body string) *Response {
-	req, err := http.NewRequest(method, buildUrl(uri), bytes.NewBufferString(body))
+func (c *Client) doRequest(method, path, body string) *Response {
+	req, err := http.NewRequest(method, buildUrl(path), bytes.NewBufferString(body))
 	if err != nil {
 		slog.Error("Failed to build request", "error", err)
 		os.Exit(1)
 	}
-	req.Header.Set("Authorization", authHeader)
-	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("Authorization", c.authHeader)
+	req.Header.Set("Content-Type", "application/xml")
 
-	resp, err := client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		slog.Error("Failed to send request", "error", err)
 		os.Exit(1)
