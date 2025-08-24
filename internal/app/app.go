@@ -1,18 +1,21 @@
 package app
 
 import (
+	"context"
 	"fmt"
-	"github.com/0x131315/hikvision-backup/internal/app/api"
-	"github.com/0x131315/hikvision-backup/internal/app/config"
-	"github.com/0x131315/hikvision-backup/internal/app/fs"
-	"github.com/0x131315/hikvision-backup/internal/app/http"
-	"github.com/0x131315/hikvision-backup/internal/app/util"
 	"io"
 	"log/slog"
 	"math"
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
+
+	"github.com/0x131315/hikvision-backup/internal/app/api"
+	"github.com/0x131315/hikvision-backup/internal/app/config"
+	"github.com/0x131315/hikvision-backup/internal/app/fs"
+	"github.com/0x131315/hikvision-backup/internal/app/http"
+	"github.com/0x131315/hikvision-backup/internal/app/util"
 )
 
 const retryCnt = 3
@@ -23,10 +26,11 @@ type File struct {
 	size int
 }
 
-func DownloadVideos() {
-	slog.Info("Request remote file list...")
+func DownloadVideos(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
 
-	videos := api.GetVideoList()
+	slog.Info("Request remote file list...")
+	videos := api.GetVideoList(ctx)
 	slog.Info("Request remote file list complete", "count", len(videos))
 
 	dates := make([]string, 0, len(videos))
@@ -36,12 +40,18 @@ func DownloadVideos() {
 	sort.Strings(dates)
 
 	for idx, date := range dates {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		slog.Info(fmt.Sprintf("Request remote file: %d/%d. Left: %d", idx+1, len(dates), len(dates)-(idx+1)))
-		saveVideo(videos[date])
+		saveVideo(ctx, videos[date])
 	}
 
 }
-func saveVideo(video api.Video) {
+func saveVideo(ctx context.Context, video api.Video) {
 	file := buildFile(video)
 	slog.Info("processing file", "file", file.name, "size", util.FormatFileSize(file.size))
 
@@ -69,7 +79,7 @@ func saveVideo(video api.Video) {
 		}
 
 		slog.Debug("start download", "file", file.name)
-		videoResp = api.GetVideo(video)
+		videoResp = api.GetVideo(ctx, video)
 		if videoResp == nil {
 			slog.Debug("download failed", "file", file.name)
 			fs.RemoveFile(file.path)
@@ -81,9 +91,21 @@ func saveVideo(video api.Video) {
 		_, err = io.Copy(writer, videoResp.Stream)
 		videoResp.Stream.Close()
 		outFile.Close()
+
+		//success branch
 		if err == nil {
 			break
 		}
+
+		//cancel branch
+		select {
+		case <-ctx.Done():
+			fs.RemoveFile(file.path)
+			return
+		default:
+		}
+
+		//error branch
 		slog.Error("Failed to write file", "file", file.name, "err", err)
 		badCnt++
 		if badCnt > retryCnt {

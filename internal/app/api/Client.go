@@ -1,13 +1,15 @@
 package api
 
 import (
+	"context"
 	"fmt"
-	"github.com/0x131315/hikvision-backup/internal/app/config"
-	"github.com/0x131315/hikvision-backup/internal/app/http"
 	"io"
 	"log/slog"
 	"os"
 	"time"
+
+	"github.com/0x131315/hikvision-backup/internal/app/config"
+	"github.com/0x131315/hikvision-backup/internal/app/http"
 )
 
 const (
@@ -27,7 +29,7 @@ type Video struct {
 }
 type VideoList map[string]Video
 
-func GetVideoList() VideoList {
+func GetVideoList(ctx context.Context) VideoList {
 	var result = make(VideoList)
 	var timebreak = time.Now().UTC()
 	var timestart = time.Now().UTC().AddDate(0, 0, -1*config.Get().ScanLastDays)
@@ -39,6 +41,12 @@ func GetVideoList() VideoList {
 
 	for {
 		for {
+			select {
+			case <-ctx.Done():
+				return result
+			default:
+			}
+
 			resp = parseResponse(
 				respToStr(
 					http.Send("POST", searchPath, buildSearchRequest(offset, limit, &timestart, &timeend)).Stream,
@@ -82,8 +90,17 @@ func GetVideoList() VideoList {
 	return result
 }
 
-func GetVideo(video Video) *http.Response {
-	return http.Send("GET", downloadPath, buildDownloadRequest(video))
+func GetVideo(ctx context.Context, video Video) *http.Response {
+	resp := http.Send("GET", downloadPath, buildDownloadRequest(video))
+
+	if resp != nil {
+		resp.Stream = &ctxReadCloser{
+			ctx:    ctx,
+			reader: resp.Stream,
+		}
+	}
+
+	return resp
 }
 
 func respToStr(resp io.ReadCloser) string {
