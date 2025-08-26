@@ -1,121 +1,146 @@
 package http
 
 import (
-	"bytes"
 	"context"
-	"fmt"
+	"crypto/tls"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/0x131315/hikvision-backup/internal/app/config"
+	"github.com/go-resty/resty/v2"
+	"github.com/icholy/digest"
 )
 
 type Response struct {
-	code   int
-	Stream io.ReadCloser
-	Size   int
-	digest string
+	code int
+	size int
+}
+
+func (r *Response) Size() int {
+	return r.size
+}
+
+type StringResponse struct {
+	Response
+	value string
+}
+
+func (r *StringResponse) Value() string {
+	return r.value
+}
+
+type BinaryResponse struct {
+	Response
+	stream io.ReadCloser
+}
+
+func (r *BinaryResponse) Stream() io.ReadCloser {
+	return r.stream
+}
+
+func (c *Client) Send(method, uri, body string) *StringResponse {
+	resp := c.send(method, uri, body, false)
+
+	return &StringResponse{
+		Response: Response{
+			code: resp.StatusCode(),
+			size: int(resp.Size()),
+		},
+		value: resp.String(),
+	}
+}
+
+func (c *Client) GetStream(method, uri, body string) *BinaryResponse {
+	resp := c.send(method, uri, body, true)
+
+	return &BinaryResponse{
+		Response: Response{
+			code: resp.StatusCode(),
+			size: int(resp.RawResponse.ContentLength),
+		},
+		stream: &ctxReadCloser{
+			ctx:    c.ctx,
+			reader: resp.RawBody(),
+		},
+	}
 }
 
 type Client struct {
-	ctx        context.Context
-	client     *http.Client
-	conf       config.Config
-	digest     *Digest
-	authHeader string
+	ctx    context.Context
+	client *resty.Client
+	conf   config.Config
 }
 
 func NewHttpClient(ctx context.Context, conf config.Config) *Client {
-	client := &http.Client{}
-
 	//ignore proxy in env variables (for debug sessions)
 	if conf.NoProxy {
-		client = &http.Client{
-			Transport: &http.Transport{
-				Proxy: nil, // Отключаем использование прокси
-			},
-		}
+		os.Unsetenv("http_proxy")
+		os.Unsetenv("https_proxy")
 	}
 
-	return &Client{ctx: ctx, client: client, conf: conf, digest: NewDigest(conf)}
+	client := resty.New()
+	client.SetRetryWaitTime(500 * time.Millisecond)
+	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+
+	client.SetAllowGetMethodPayload(true)
+	client.SetHeader("Accept", "application/xml")
+	client.SetHeader("Content-Type", "application/xml")
+
+	client.SetRetryCount(conf.RetryCnt)
+	client.SetBaseURL("http://" + conf.Host)
+	client.SetTimeout(time.Duration(conf.HttpTimeout) * time.Second)
+
+	if conf.LogLvl == slog.LevelDebug {
+		client.SetDebug(true)
+	}
+
+	if conf.User != "" {
+		digestTransport := &digest.Transport{
+			Username: conf.User,
+			Password: conf.Pass,
+			NoReuse:  true, // Forces new challenge (nonce) for each request
+		}
+		client.SetTransport(digestTransport)
+	}
+
+	return &Client{ctx: ctx, client: client, conf: conf}
 }
 
-func (c *Client) Send(method, uri, body string) *Response {
+func (c *Client) send(method, uri, body string, noParse bool) *resty.Response {
 	slog.Debug("http request",
 		"method", method,
 		"uri", uri,
 		"body", strings.Replace(strings.Replace(body, "\n", "", -1), " ", "", -1),
 	)
-	resp := c.doRequest(method, uri, body)
-	slog.Debug("http response",
-		"code", resp.code,
-		"size", resp.Size,
-		"digest", resp.digest,
-	)
 
-	var badCnt int
-	retryCnt := c.conf.RetryCnt
-
-	for resp.code == http.StatusUnauthorized {
-		resp.Stream.Close()
-		badCnt++
-		if badCnt > retryCnt {
-			slog.Debug("http retry failed, skipped")
-			return nil
-		}
-		slog.Debug("send auth", "count", fmt.Sprintf("%d/%d", badCnt, retryCnt))
-		c.digest.updateDigest(resp.digest)
-		c.authHeader = c.digest.getNextAuthHeader(method, uri)
-		resp = c.doRequest(method, uri, body)
-	}
-
-	badCnt = 0
-	for resp.code == http.StatusInternalServerError {
-		resp.Stream.Close()
-		badCnt++
-		if badCnt > retryCnt {
-			slog.Debug("http retry failed, skipped")
-			return nil
-		}
-		slog.Debug("resend request", "count", fmt.Sprintf("%d/%d", badCnt, retryCnt))
-		resp = c.doRequest(method, uri, body)
-	}
-
-	if resp.code != http.StatusOK {
-		slog.Error("http error", "code", resp.code)
-		os.Exit(1)
-	}
-
-	return resp
-}
-
-func (c *Client) doRequest(method, path, body string) *Response {
-	req, err := http.NewRequest(method, buildUrl(path), bytes.NewBufferString(body))
-	if err != nil {
-		slog.Error("Failed to build request", "error", err)
-		os.Exit(1)
-	}
-	req.Header.Set("Authorization", c.authHeader)
-	req.Header.Set("Content-Type", "application/xml")
-
-	resp, err := c.client.Do(req)
+	req := c.client.R().SetBody(body).SetDoNotParseResponse(noParse)
+	resp, err := req.Execute(method, uri)
 	if err != nil {
 		slog.Error("Failed to send request", "error", err)
 		os.Exit(1)
 	}
 
-	return &Response{
-		code:   resp.StatusCode,
-		Stream: resp.Body,
-		Size:   int(resp.ContentLength),
-		digest: resp.Header.Get("WWW-Authenticate"),
-	}
-}
+	slog.Debug("http response",
+		"code", resp.StatusCode(),
+		"size", resp.RawResponse.ContentLength,
+	)
 
-func buildUrl(path string) string {
-	host := config.Get().Host
-	return fmt.Sprintf("http://%s%s", host, path)
+	if resp.StatusCode() >= 500 {
+		retryCnt := config.Get().RetryCnt
+		for retryCnt > 0 && resp.StatusCode() >= 500 {
+			slog.Debug("send retry request", "retryCnt", retryCnt)
+			resp = c.send(method, uri, body, noParse)
+		}
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		slog.Error("http error", "code", resp.StatusCode())
+		os.Exit(1)
+	}
+
+	return resp
 }

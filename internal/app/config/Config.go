@@ -16,13 +16,15 @@ type Config struct {
 	DownloadDir  string
 	ScanLastDays int
 	RetryCnt     int
+	HttpTimeout  int
 	LogLvl       slog.Level
+	LogHttp      bool
 }
 
 var config *Config
 
-func Init(logLvl slog.Level) Config {
-	conf := buildConfig(logLvl)
+func Init(logLvl slog.Level, logHttp bool) Config {
+	conf := buildConfig(logLvl, logHttp)
 	config = &conf
 
 	return conf
@@ -32,7 +34,7 @@ func Get() Config {
 	return *config
 }
 
-func buildConfig(logLvl slog.Level) Config {
+func buildConfig(logLvl slog.Level, logHttp bool) Config {
 	host := os.Getenv("CAM_HOST")
 	if host == "" {
 		slog.Error("CAM_HOST environment variable not set")
@@ -87,6 +89,25 @@ func buildConfig(logLvl slog.Level) Config {
 		slog.Error("HTTP_RETRY_CNT environment variable not numeric")
 		os.Exit(1)
 	}
+	if retryCnt < 0 {
+		slog.Error("HTTP_RETRY_CNT environment variable smaller than 0")
+		os.Exit(1)
+	}
+
+	envHttpTimeout := os.Getenv("HTTP_TIMEOUT")
+	if envHttpTimeout == "" {
+		slog.Debug("HTTP_TIMEOUT environment variable not set")
+		envHttpTimeout = "120"
+	}
+	httpTimeout, err := strconv.Atoi(envHttpTimeout)
+	if err != nil {
+		slog.Error("HTTP_TIMEOUT environment variable not numeric")
+		os.Exit(1)
+	}
+	if httpTimeout < 0 {
+		slog.Error("HTTP_TIMEOUT environment variable smaller than 0")
+		os.Exit(1)
+	}
 
 	conf := Config{
 		Host:         host,
@@ -96,7 +117,9 @@ func buildConfig(logLvl slog.Level) Config {
 		DownloadDir:  downloadDir,
 		ScanLastDays: lastDays,
 		RetryCnt:     retryCnt,
+		HttpTimeout:  httpTimeout,
 		LogLvl:       logLvl,
+		LogHttp:      logHttp,
 	}
 
 	return conf

@@ -30,8 +30,8 @@ type App struct {
 	conf config.Config
 }
 
-func NewApp(ctx context.Context, logLvl slog.Level) *App {
-	conf := config.Init(logLvl)
+func NewApp(ctx context.Context, logLvl slog.Level, logHttp bool) *App {
+	conf := config.Init(logLvl, logHttp)
 	return &App{ctx: ctx, api: api.NewApiClient(ctx, conf), conf: conf}
 }
 
@@ -85,8 +85,8 @@ func (app *App) saveVideo(video api.Video) {
 		fs.RemoveFile(file.path)
 	}
 
-	var videoResp *http.Response
-	var badCnt int
+	var videoResp *http.BinaryResponse
+	var badCnt, streamSize int
 	retryCnt := app.conf.RetryCnt
 	for {
 		outFile, err := os.Create(file.path)
@@ -97,16 +97,17 @@ func (app *App) saveVideo(video api.Video) {
 
 		slog.Debug("start download", "file", file.name)
 		videoResp = app.api.GetVideo(video)
-		if videoResp == nil {
+		if videoResp == nil || videoResp.Size() == 0 {
 			slog.Debug("download failed", "file", file.name)
 			fs.RemoveFile(file.path)
 			return
 		}
+		streamSize = videoResp.Size()
 
-		slog.Debug("writing start", "file", file.name, "expected size", util.FormatFileSize(videoResp.Size))
-		writer := io.MultiWriter(outFile, util.BuildProgressBar(videoResp.Size, "b"))
-		_, err = io.Copy(writer, videoResp.Stream)
-		videoResp.Stream.Close()
+		slog.Debug("writing start", "file", file.name, "expected size", util.FormatFileSize(streamSize))
+		stream := io.TeeReader(videoResp.Stream(), util.BuildProgressBar(streamSize, "b"))
+		_, err = io.Copy(outFile, stream)
+		videoResp.Stream().Close()
 		outFile.Close()
 
 		//success branch
@@ -139,10 +140,10 @@ func (app *App) saveVideo(video api.Video) {
 	}
 
 	slog.Debug("validate")
-	if filesize != videoResp.Size {
+	if filesize != streamSize {
 		slog.Error("file size mismatch",
-			"loaded", fmt.Sprintf("%s/%s", util.FormatFileSize(filesize), util.FormatFileSize(videoResp.Size)),
-			"diff", util.FormatFileSize(int(math.Abs(float64(videoResp.Size-filesize)))),
+			"loaded", fmt.Sprintf("%s/%s", util.FormatFileSize(filesize), util.FormatFileSize(videoResp.Size())),
+			"diff", util.FormatFileSize(int(math.Abs(float64(streamSize-filesize)))),
 		)
 		fs.RemoveFile(file.path)
 		return

@@ -31,12 +31,14 @@ func main() {
 	}
 
 	logLvl := slog.LevelInfo
-	if len(os.Args) > 1 && os.Args[1] == "-vv" {
+	logHttp := false
+	if len(os.Args) > 1 && (os.Args[1] == "-vv" || os.Args[1] == "-vvv") {
 		logLvl = slog.LevelDebug
+		logHttp = os.Args[1] == "-vvv"
 	}
 	initLogger(logLvl)
 
-	App := app.NewApp(ctx, logLvl)
+	App := app.NewApp(ctx, logLvl, logHttp)
 	fs.Init(App.Conf().DownloadDir)
 
 	App.DownloadVideos()

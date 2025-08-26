@@ -3,9 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
-	"os"
 	"time"
 
 	"github.com/0x131315/hikvision-backup/internal/app/config"
@@ -58,11 +56,9 @@ func (api *ApiClient) GetVideoList() VideoList {
 			default:
 			}
 
-			resp = parseResponse(
-				respToStr(
-					api.httpClient.Send("POST", searchPath, buildSearchRequest(offset, limit, api.conf.ScanLastDays, &timestart, &timeend)).Stream,
-				),
-			)
+			requestStr := buildSearchRequest(offset, limit, api.conf.ScanLastDays, &timestart, &timeend)
+			responseStr := api.httpClient.Send("POST", searchPath, requestStr).Value()
+			resp = parseResponse(responseStr)
 			if offset == 0 {
 				slog.Info("found files", "count", resp.TotalMatches)
 			}
@@ -103,25 +99,6 @@ func (api *ApiClient) GetVideoList() VideoList {
 	return listVideos
 }
 
-func (api *ApiClient) GetVideo(video Video) *http.Response {
-	resp := api.httpClient.Send("GET", downloadPath, buildDownloadRequest(video))
-
-	if resp != nil {
-		resp.Stream = &ctxReadCloser{
-			ctx:    api.ctx,
-			reader: resp.Stream,
-		}
-	}
-
-	return resp
-}
-
-func respToStr(resp io.ReadCloser) string {
-	defer resp.Close()
-	buff, err := io.ReadAll(resp)
-	if err != nil {
-		slog.Error("Failed to read response body", "error", err)
-		os.Exit(1)
-	}
-	return string(buff)
+func (api *ApiClient) GetVideo(video Video) *http.BinaryResponse {
+	return api.httpClient.GetStream("GET", downloadPath, buildDownloadRequest(video))
 }
