@@ -4,6 +4,7 @@ go 1.24
 
 require (
 	github.com/go-resty/resty/v2 v2.16.5
+	github.com/icholy/digest v1.1.0
 	github.com/joho/godotenv v1.5.1
 	github.com/schollz/progressbar/v3 v3.18.0
 )
