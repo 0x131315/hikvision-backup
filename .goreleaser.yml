@@ -29,6 +29,7 @@ archives:
     files:
       - LICENSE
       - README.md
+      - .env.dist
     format_overrides:
       - goos: windows
         formats: ['zip']
