@@ -63,14 +63,63 @@ All parameters are set via a `.env` file in the project root.
 
 - **`CAM_PASS`** — Password for camera authentication
 
-- **`NO_PROXY`** — Set to `true` to ignore the `ALL_PROXY` environment variable (e.g. for direct access to local IPs)  
-  _Values_: `true` / `false`
 
+#### Optional Variables
+
+- **`HTTP_RETRY_CNT`** — Number of retry send http request on error  
+  _Example_: `3` (retry 3 times)
+  _(default: 3)_
+
+- **`HTTP_TIMEOUT`** — Timeout for wait http response and max time for download video file  
+  _Example_: `3` (wait 3 seconds)
+  _(default: 120, off limit: 0)_
+
+- **`NO_PROXY`** — Set to `true` to ignore the `http_proxy/https_proxy` environment variable (e.g. for direct access to local IPs or debug)  
+  _Values_: `true` / `false`
+  _(default: false)_
+
+
+#### Command line options
+- version
+```bash
+   ./hikvision-backup -v
+```
+
+- debug info
+```bash
+   ./hikvision-backup -vv
+```
+- http stream
+```bash
+   ./hikvision-backup -vvv
+```
 
 ---
 
 
 ### ▶️ How to Use
+
+1. Download [latest](https://github.com/0x131315/hikvision-backup/releases/latest) version for your machine
+2. Unpack the archive on any directory, e.g. `hidownload`
+3. Enter the directory:
+```bash
+   cd hidownload
+```
+4. Copy the example config:
+```bash
+   cp .env.dist .env
+```
+5. Edit the `.env` file with your camera settings
+6. Run the program:
+```bash
+   ./hikvision-backup
+```
+
+#### ✅ That's it!
+
+Simple "set and forget" tool — ideal for running via cron, systemd, or any task scheduler.
+
+### 🛠️ How to Build
 
 1. [Install Go](https://go.dev/doc/install) if not already installed
 2. Create a working directory:
@@ -87,7 +136,7 @@ All parameters are set via a `.env` file in the project root.
 ```
 5. Build the project:
 ```bash
-   go build
+   make build
 ```
 6. Copy the example config:
 ```bash
@@ -97,11 +146,7 @@ All parameters are set via a `.env` file in the project root.
 ```bash
    nano .env
 ```
-8. Run the script:
+8. Run the program:
 ```bash
    ./hikvision-backup
 ```
-
-#### ✅ That's it!
-
-Simple "set and forget" tool — ideal for running via cron, systemd, or any task scheduler.
