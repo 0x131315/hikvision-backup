@@ -45,7 +45,7 @@ The script performs the following steps to ensure all camera videos are download
 
 ### ⚙️ Config
 
-All parameters are set via a `.env` file in the project root.
+All parameters are set via a `.env` file in the project root or via env-variables in console. Env-variables have a higher priority.
 
 #### Required Variables
 
