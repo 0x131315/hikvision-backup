@@ -26,6 +26,8 @@ func main() {
 	}()
 
 	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
+		printDescription()
+		printFeatureList()
 		printVersion()
 		os.Exit(0)
 	}
@@ -44,4 +46,20 @@ func main() {
 	App.DownloadVideos()
 
 	slog.Debug("shutting down")
+}
+
+func printDescription() {
+	fmt.Print("Hikvision video backup utility\n")
+	fmt.Print("Automatically connects to the camera via http api (ISAPI) and downloads new videos to a local folder\n")
+	fmt.Print("\n")
+}
+
+func printFeatureList() {
+	fmt.Print("Features:\n")
+	fmt.Print("- automatic download of video files\n")
+	fmt.Print("- automatic repair of broken or incomplete files\n")
+	fmt.Print("- connection error compensation\n")
+	fmt.Print("- search for new videos in the last N days\n")
+	fmt.Print("- support for env-variables and .env files\n")
+	fmt.Print("\n")
 }

@@ -15,4 +15,5 @@ func printVersion() {
 	fmt.Printf("Version:   %s\n", version)
 	fmt.Printf("Commit:    %s\n", commit)
 	fmt.Printf("BuildDate: %s\n", buildDate)
+	fmt.Printf("Source: %s\n", "https://github.com/0x131315/hikvision-backup")
 }
