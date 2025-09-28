@@ -65,7 +65,7 @@ changelog:
       regexp: '(?i)^(ci)'
       order: 7
     - title: '📦 Lib'
-      regexp: '(?i)^(lib)'
+      regexp: '(?i)^(lib|bump)'
       order: 8
     - title: '🚧 WIP'
       regexp: '(?i)^(wip)'
