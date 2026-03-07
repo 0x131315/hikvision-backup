@@ -133,6 +133,7 @@ func (c *Client) send(method, uri, body string, noParse bool) *resty.Response {
 		retryCnt := config.Get().RetryCnt
 		for retryCnt > 0 && resp.StatusCode() >= 500 {
 			slog.Debug("send retry request", "retryCnt", retryCnt)
+			retryCnt--
 			resp = c.send(method, uri, body, noParse)
 		}
 	}
