@@ -151,3 +151,7 @@ Simple "set and forget" tool — ideal for running via cron, systemd, or any tas
 ```bash
    ./hikvision-backup
 ```
+
+### 🧾 Release Process
+
+See `RELEASE.md` for the release workflow and tagging rules.
