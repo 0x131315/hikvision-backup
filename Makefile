@@ -33,7 +33,35 @@ DATE    ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 LDFLAGS_STRING = -X 'main.version=${VERSION}' -X 'main.commit=${COMMIT}' -X 'main.buildDate=${DATE}'
 LDFLAGS = -ldflags="${LDFLAGS_STRING}"
 
-.PHONY: build
+define CHECK_ON_RELEASE_BRANCH
+@if [ "$(shell git rev-parse --abbrev-ref HEAD)" != "$(RELEASE_BRANCH)" ]; then \
+	echo "Error: $(1) must be run on $(RELEASE_BRANCH) (current: $(shell git rev-parse --abbrev-ref HEAD))."; \
+	exit 1; \
+fi
+endef
+
+define CHECK_NOT_ON_RELEASE_BRANCH
+@if [ "$(shell git rev-parse --abbrev-ref HEAD)" = "$(RELEASE_BRANCH)" ]; then \
+	echo "Error: $(1) must not be run on $(RELEASE_BRANCH) (current: $(shell git rev-parse --abbrev-ref HEAD))."; \
+	exit 1; \
+fi
+endef
+
+define CHECK_NO_VERSION_TAG
+@if git tag --points-at HEAD | grep -Eq '^v'; then \
+	echo "Error: current commit already has a version tag (v...)."; \
+	exit 1; \
+fi
+endef
+
+define CHECK_TAG_NOT_EXISTS
+@if git tag --list '$(1)' | grep -Eq '.'; then \
+	echo "Error: tag $(1) already exists in repository."; \
+	exit 1; \
+fi
+endef
+
+.PHONY: build next-alpha next-beta next-patch next-minor next-major release
 # Build binary with version/commit/date baked via ldflags
 build:
 	@echo "==> Building ${APP_NAME}..."
@@ -51,26 +79,41 @@ bump:
 
 # Tag next patch version with alpha suffix
 next-alpha:
+	$(call CHECK_NOT_ON_RELEASE_BRANCH,next-alpha)
+	$(call CHECK_NO_VERSION_TAG)
+	$(call CHECK_TAG_NOT_EXISTS,$(NEW_VERSION_ALPHA))
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_ALPHA)..."
 	git tag $(NEW_VERSION_ALPHA)
 
 # Tag next patch version with beta suffix
 next-beta:
+	$(call CHECK_NOT_ON_RELEASE_BRANCH,next-beta)
+	$(call CHECK_NO_VERSION_TAG)
+	$(call CHECK_TAG_NOT_EXISTS,$(NEW_VERSION_BETA))
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_BETA)..."
 	git tag $(NEW_VERSION_BETA)
 
 # Tag next patch version
 next-patch:
+	$(call CHECK_ON_RELEASE_BRANCH,next-patch)
+	$(call CHECK_NO_VERSION_TAG)
+	$(call CHECK_TAG_NOT_EXISTS,$(NEW_VERSION_PATCH))
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_PATCH)..."
 	git tag $(NEW_VERSION_PATCH)
 
 # Tag next minor version (patch = 0)
 next-minor:
+	$(call CHECK_ON_RELEASE_BRANCH,next-minor)
+	$(call CHECK_NO_VERSION_TAG)
+	$(call CHECK_TAG_NOT_EXISTS,$(NEW_VERSION_MINOR))
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_MINOR)..."
 	git tag $(NEW_VERSION_MINOR)
 
 # Tag next major version (minor/patch = 0)
 next-major:
+	$(call CHECK_ON_RELEASE_BRANCH,next-major)
+	$(call CHECK_NO_VERSION_TAG)
+	$(call CHECK_TAG_NOT_EXISTS,$(NEW_VERSION_MAJOR))
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_MAJOR)..."
 	git tag $(NEW_VERSION_MAJOR)
 
