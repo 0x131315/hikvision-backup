@@ -79,11 +79,16 @@ else \
 fi
 endef
 
-.PHONY: build next-alpha next-beta next-patch next-minor next-major release
+.PHONY: build test next-alpha next-beta next-patch next-minor next-major release
 # Build binary with version/commit/date baked via ldflags
 build:
 	@echo "==> Building ${APP_NAME}..."
 	go build ${LDFLAGS} -o ${APP_NAME} .
+
+# Run tests
+test:
+	@echo "==> Running tests..."
+	go test ./...
 
 .PHONY: bump
 # Update deps + vendor + commit in one step

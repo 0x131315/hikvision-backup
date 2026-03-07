@@ -5,6 +5,7 @@ project_name: hikvision-backup
 before:
   hooks:
     - go mod tidy
+    - go test ./...
 
 builds:
   - main: .
