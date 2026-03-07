@@ -38,6 +38,15 @@ build:
 	@echo "==> Building ${APP_NAME}..."
 	go build ${LDFLAGS} -o ${APP_NAME} .
 
+.PHONY: bump
+bump:
+	@echo "==> Updating dependencies and vendor..."
+	go get -u ./...
+	go mod tidy
+	go mod vendor
+	git add go.mod go.sum vendor
+	git commit -m "bump"
+
 next-alpha:
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_ALPHA)..."
 	git tag $(NEW_VERSION_ALPHA)
