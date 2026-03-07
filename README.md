@@ -5,7 +5,7 @@ Created as an MVP pet project for private use.
 
 ### 🚀 Easy to Use — Set and Forget
 
-Just configure the environment variables, run the script — and you're done.  
+Just configure the environment variables, run the binary — and you're done.  
 It handles retries, verifies file integrity, and keeps your archive up to date automatically.
 
 Ideal for automation: run it as a cron job, systemd service, or background task.
@@ -17,9 +17,7 @@ Ideal for automation: run it as a cron job, systemd service, or background task.
 The script performs the following steps to ensure all camera videos are downloaded reliably:
 
 #### 🔁 Retry Logic
-- Retries up to **3 times** in case of:
-    - Authentication errors
-    - Camera returning **HTTP 500** errors
+- Retries on **HTTP 5xx** and **401/403** responses up to `HTTP_RETRY_CNT` times
 
 #### 📷 Video Scanning
 - Scans the camera for videos from the last `SCAN_LAST_DAYS` days
@@ -49,11 +47,10 @@ All parameters are set via a `.env` file in the project root or via env-variable
 
 #### Required Variables
 
+Required vars have no default and must be set.
+
 - **`DOWNLOAD_DIR`** — Path where downloaded videos will be saved  
   _Example_: `/home/user/camera_videos`
-
-- **`SCAN_LAST_DAYS`** — Number of days to look back when scanning for videos  
-  _Example_: `3` (scans the last 3 days)
 
 - **`CAM_HOST`** — Camera hostname or IP address  
   _Example_: `192.168.1.10`
@@ -61,10 +58,14 @@ All parameters are set via a `.env` file in the project root or via env-variable
 - **`CAM_USER`** — Username for camera authentication  
   _Example_: `admin`
 
-- **`CAM_PASS`** — Password for camera authentication
-
-
 #### Optional Variables
+
+- **`CAM_PASS`** — Password for camera authentication
+  _(default: empty; can be empty if the camera allows it)_
+
+- **`SCAN_LAST_DAYS`** — Number of days to look back when scanning for videos  
+  _Example_: `3` (scans the last 3 days)
+  _(default: 0; 0 means no limit)_
 
 - **`HTTP_RETRY_CNT`** — Number of retry send http request on error  
   _Example_: `3` (retry 3 times)
