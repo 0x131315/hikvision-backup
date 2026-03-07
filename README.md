@@ -67,6 +67,10 @@ Required vars have no default and must be set.
   _Example_: `3` (scans the last 3 days)
   _(default: 0; 0 means no limit)_
 
+- **`SCAN_FROM_LOCAL_LATEST`** — If greater than `0`, scan the download directory first, find the newest local file by date in its name, subtract this number of days, and use the smaller window between that value and `SCAN_LAST_DAYS`  
+  _Example_: `2`
+  _(default: 0; 0 means disabled; negative values are treated as absolute)_
+
 - **`HTTP_RETRY_CNT`** — Number of retry send http request on error  
   _Example_: `3` (retry 3 times)
   _(default: 3)_

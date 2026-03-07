@@ -15,6 +15,7 @@ type Config struct {
 	NoProxy      bool
 	DownloadDir  string
 	ScanLastDays int
+	ScanLocal    int
 	RetryCnt     int
 	HttpTimeout  int
 	LogLvl       slog.Level
@@ -75,6 +76,22 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 		lastDays = lastDays * -1
 	}
 
+	scanLocalStr := os.Getenv("SCAN_FROM_LOCAL_LATEST")
+	if scanLocalStr == "" {
+		scanLocalStr = "0"
+	}
+	scanLocalDays, err := strconv.Atoi(scanLocalStr)
+	if err != nil {
+		slog.Error("SCAN_FROM_LOCAL_LATEST environment variable not numeric")
+		os.Exit(1)
+	}
+	if scanLocalDays < 0 {
+		scanLocalDays = scanLocalDays * -1
+	}
+	if scanLocalDays > 0 {
+		lastDays = adjustScanLastDaysFromLocal(downloadDir, lastDays, scanLocalDays)
+	}
+
 	envRetryCnt := os.Getenv("HTTP_RETRY_CNT")
 	if envRetryCnt == "" {
 		slog.Debug("HTTP_RETRY_CNT environment variable not set")
@@ -112,6 +129,7 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 		NoProxy:      noProxy == "true",
 		DownloadDir:  downloadDir,
 		ScanLastDays: lastDays,
+		ScanLocal:    scanLocalDays,
 		RetryCnt:     retryCnt,
 		HttpTimeout:  httpTimeout,
 		LogLvl:       logLvl,
