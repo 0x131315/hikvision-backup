@@ -79,7 +79,7 @@ else \
 fi
 endef
 
-.PHONY: build test next-alpha next-beta next-patch next-minor next-major release
+.PHONY: build test i18n-update i18n-check next-alpha next-beta next-patch next-minor next-major release
 # Build binary with version/commit/date baked via ldflags
 build:
 	@echo "==> Building ${APP_NAME}..."
@@ -89,6 +89,16 @@ build:
 test:
 	@echo "==> Running tests..."
 	go test ./...
+
+# Update translations (requires DEEPL_API_KEY)
+i18n-update:
+	@echo "==> Updating translations..."
+	go run ./tools/i18n
+
+# Check translations (no API calls)
+i18n-check:
+	@echo "==> Checking translations..."
+	go run ./tools/i18n --check
 
 .PHONY: bump
 # Update deps + vendor + commit in one step
