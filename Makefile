@@ -61,6 +61,24 @@ define CHECK_TAG_NOT_EXISTS
 fi
 endef
 
+define CHECK_TAG_EXISTS
+@if git tag --list '$(1)' | grep -Eq '.'; then \
+	:; \
+else \
+	echo "Error: tag $(1) does not exist locally."; \
+	exit 1; \
+fi
+endef
+
+define CHECK_TAG_ON_HEAD
+@if git tag --points-at HEAD | grep -Fxq '$(1)'; then \
+	:; \
+else \
+	echo "Error: tag $(1) is not on HEAD (current commit)."; \
+	exit 1; \
+fi
+endef
+
 .PHONY: build next-alpha next-beta next-patch next-minor next-major release
 # Build binary with version/commit/date baked via ldflags
 build:
@@ -119,6 +137,9 @@ next-major:
 
 # Release: push release branch and current tag
 release:
+	$(call CHECK_ON_RELEASE_BRANCH,release)
+	$(call CHECK_TAG_EXISTS,$(VERSION))
+	$(call CHECK_TAG_ON_HEAD,$(VERSION))
 	@echo "==> Releasing ${APP_NAME} version $(VERSION)..."
 	git push origin $(RELEASE_BRANCH)
 	git push origin $(VERSION)
