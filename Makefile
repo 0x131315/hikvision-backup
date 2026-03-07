@@ -34,11 +34,13 @@ LDFLAGS_STRING = -X 'main.version=${VERSION}' -X 'main.commit=${COMMIT}' -X 'mai
 LDFLAGS = -ldflags="${LDFLAGS_STRING}"
 
 .PHONY: build
+# Build binary with version/commit/date baked via ldflags
 build:
 	@echo "==> Building ${APP_NAME}..."
 	go build ${LDFLAGS} -o ${APP_NAME} .
 
 .PHONY: bump
+# Update deps + vendor + commit in one step
 bump:
 	@echo "==> Updating dependencies and vendor..."
 	go get -u ./...
@@ -47,26 +49,32 @@ bump:
 	git add go.mod go.sum vendor
 	git commit -m "bump"
 
+# Tag next patch version with alpha suffix
 next-alpha:
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_ALPHA)..."
 	git tag $(NEW_VERSION_ALPHA)
 
+# Tag next patch version with beta suffix
 next-beta:
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_BETA)..."
 	git tag $(NEW_VERSION_BETA)
 
+# Tag next patch version
 next-patch:
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_PATCH)..."
 	git tag $(NEW_VERSION_PATCH)
 
+# Tag next minor version (patch = 0)
 next-minor:
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_MINOR)..."
 	git tag $(NEW_VERSION_MINOR)
 
+# Tag next major version (minor/patch = 0)
 next-major:
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_MAJOR)..."
 	git tag $(NEW_VERSION_MAJOR)
 
+# Release: push release branch and current tag
 release:
 	@echo "==> Releasing ${APP_NAME} version $(VERSION)..."
 	git push origin $(RELEASE_BRANCH)
