@@ -117,31 +117,32 @@ func (c *Client) send(method, uri, body string, noParse bool) *resty.Response {
 		"body", strings.Replace(strings.Replace(body, "\n", "", -1), " ", "", -1),
 	)
 
-	req := c.client.R().SetBody(body).SetDoNotParseResponse(noParse)
-	resp, err := req.Execute(method, uri)
-	if err != nil {
-		slog.Error("Failed to send request", "error", err)
-		os.Exit(1)
-	}
-
-	slog.Debug("http response",
-		"code", resp.StatusCode(),
-		"size", resp.RawResponse.ContentLength,
-	)
-
-	if resp.StatusCode() >= 500 {
-		retryCnt := config.Get().RetryCnt
-		for retryCnt > 0 && resp.StatusCode() >= 500 {
-			slog.Debug("send retry request", "retryCnt", retryCnt)
-			retryCnt--
-			resp = c.send(method, uri, body, noParse)
+	retryCnt := config.Get().RetryCnt
+	for {
+		req := c.client.R().SetBody(body).SetDoNotParseResponse(noParse)
+		resp, err := req.Execute(method, uri)
+		if err != nil {
+			slog.Error("Failed to send request", "error", err)
+			os.Exit(1)
 		}
-	}
 
-	if resp.StatusCode() != http.StatusOK {
-		slog.Error("http error", "code", resp.StatusCode())
-		os.Exit(1)
-	}
+		slog.Debug("http response",
+			"code", resp.StatusCode(),
+			"size", resp.RawResponse.ContentLength,
+		)
 
-	return resp
+		code := resp.StatusCode()
+		if (code >= 500 || code == http.StatusUnauthorized || code == http.StatusForbidden) && retryCnt > 0 {
+			slog.Debug("send retry request", "retryCnt", retryCnt, "code", code)
+			retryCnt--
+			continue
+		}
+
+		if code != http.StatusOK {
+			slog.Error("http error", "code", code)
+			os.Exit(1)
+		}
+
+		return resp
+	}
 }
