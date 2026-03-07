@@ -3,7 +3,7 @@ name: goreleaser
 on:
   push:
     tags:
-      - 'v*.*.*' # запускается на тегах вида v1.0.0
+      - 'v*.*.*' # runs on tags like v1.0.0
 
 permissions:
   contents: write

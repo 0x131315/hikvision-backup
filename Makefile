@@ -1,26 +1,26 @@
 APP_NAME ?= hikvision-backup
 RELEASE_BRANCH ?= master
 
-# Получаем текущую версию из тега git
+# Get current version from the latest git tag
 VERSION ?= $(shell git describe --tags --abbrev=0)
 
-# Удаляем префикс 'v' если он есть
+# Strip the 'v' prefix if present
 RAW_VERSION := $(subst v,,$(VERSION))
 
-# Разделяем версию на части (major.minor.patch)
+# Split version into parts (major.minor.patch)
 MAJOR := $(word 1, $(subst ., ,$(RAW_VERSION)))
 MINOR := $(word 2, $(subst ., ,$(RAW_VERSION)))
 PATCH := $(word 3, $(subst ., ,$(RAW_VERSION)))
 
-# Увеличиваем patch-версию на единицу
+# Increment patch version by one
 NEW_PATCH := $(shell echo $$(( $(PATCH) + 1 )))
 NEW_VERSION_PATCH := v$(MAJOR).$(MINOR).$(NEW_PATCH)
 
-# Увеличиваем minor-версию и сбрасываем patch-версию до 0
+# Increment minor version and reset patch to 0
 NEW_MINOR := $(shell echo $$(( $(MINOR) + 1 )))
 NEW_VERSION_MINOR := v$(MAJOR).$(NEW_MINOR).0
 
-# Увеличиваем major-версию и сбрасываем minor и patch версии до 0
+# Increment major version and reset minor/patch to 0
 NEW_MAJOR := $(shell echo $$(( $(MAJOR) + 1 )))
 NEW_VERSION_MAJOR := v$(NEW_MAJOR).0.0
 

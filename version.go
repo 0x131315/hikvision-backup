@@ -4,11 +4,11 @@ import (
 	"fmt"
 )
 
-// Эти переменные будут "заполнены" во время сборки
+// These variables are populated at build time.
 var (
-	version   = "development" // Версия сборки
-	commit    = "none"        // Хэш коммита
-	buildDate = "unknown"     // Дата сборки
+	version   = "development" // Build version
+	commit    = "none"        // Commit hash
+	buildDate = "unknown"     // Build date
 )
 
 func printVersion() {
