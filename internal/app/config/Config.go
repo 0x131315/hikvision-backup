@@ -62,8 +62,8 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 
 	scanLastDays := os.Getenv("SCAN_LAST_DAYS")
 	if scanLastDays == "" {
-		slog.Error("SCAN_LAST_DAYS environment variable not set")
-		os.Exit(1)
+		slog.Debug("SCAN_LAST_DAYS environment variable not set")
+		scanLastDays = "0"
 	}
 
 	lastDays, err := strconv.Atoi(scanLastDays)
@@ -73,10 +73,6 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 	}
 	if lastDays < 0 {
 		lastDays = lastDays * -1
-	}
-	if lastDays < 1 {
-		slog.Error("SCAN_LAST_DAYS environment variable smaller than 1")
-		os.Exit(1)
 	}
 
 	envRetryCnt := os.Getenv("HTTP_RETRY_CNT")

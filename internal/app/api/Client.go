@@ -41,7 +41,12 @@ func (api *ApiClient) GetVideoList() VideoList {
 	slog.Info("Request remote file list...")
 	var listVideos = make(VideoList)
 	var timebreak = time.Now().UTC()
-	var timestart = time.Now().UTC().AddDate(0, 0, -1*api.conf.ScanLastDays)
+	var timestart time.Time
+	if api.conf.ScanLastDays == 0 {
+		timestart = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	} else {
+		timestart = time.Now().UTC().AddDate(0, 0, -1*api.conf.ScanLastDays)
+	}
 	var timeend = timestart.AddDate(0, 1, 0)
 	var cnt int
 	var resp *CMSearchResult
