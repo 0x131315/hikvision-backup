@@ -54,5 +54,6 @@ Environment variables:
 - **`DEEPL_API_URL`** — Optional override for DeepL endpoint.
 - **`GOOGLE_TRANSLATE_API_KEY`** — Google Cloud Translation API key (fallback).
 - **`GOOGLE_TRANSLATE_API_URL`** — Optional override for Google Translate endpoint.
+- **`GOOGLE_APPLICATION_CREDENTIALS`** — Path to Google service account JSON (fallback if API key is not set).
 - **`LIBRETRANSLATE_URL`** — LibreTranslate base URL (fallback when `DEEPL_API_KEY` is not set).
 - **`LIBRETRANSLATE_API_KEY`** — Optional API key for LibreTranslate instances that require it.
