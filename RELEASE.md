@@ -44,3 +44,13 @@ This runs:
 - The current version is derived from the latest git tag via `git describe --tags --abbrev=0`.
 - `release` does not build binaries locally; it only pushes the branch and tag.
 - If a tag was created on the wrong branch, delete it locally and remotely, then retag correctly.
+
+## Translation Automation
+
+Translations are managed via `tools/i18n` and updated automatically in CI.
+
+Environment variables:
+- **`DEEPL_API_KEY`** — DeepL API key (preferred).
+- **`DEEPL_API_URL`** — Optional override for DeepL endpoint.
+- **`LIBRETRANSLATE_URL`** — LibreTranslate base URL (fallback when `DEEPL_API_KEY` is not set).
+- **`LIBRETRANSLATE_API_KEY`** — Optional API key for LibreTranslate instances that require it.

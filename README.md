@@ -83,15 +83,6 @@ Required vars have no default and must be set.
   _Values_: `true` / `false`
   _(default: false)_
 
-#### Translation Automation
-
-Translations are managed via `tools/i18n` and updated automatically in CI.
-
-- **`DEEPL_API_KEY`** — DeepL API key (preferred).  
-- **`DEEPL_API_URL`** — Optional override for DeepL endpoint.
-- **`LIBRETRANSLATE_URL`** — LibreTranslate base URL (fallback when `DEEPL_API_KEY` is not set).  
-- **`LIBRETRANSLATE_API_KEY`** — Optional API key for LibreTranslate instances that require it.
-
 
 #### Command line options
 - version
