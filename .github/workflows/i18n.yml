@@ -34,7 +34,12 @@ jobs:
           GOOGLE_TRANSLATE_API_KEY: ${{ secrets.GOOGLE_TRANSLATE_API_KEY }}
           LIBRETRANSLATE_URL: ${{ secrets.LIBRETRANSLATE_URL }}
           LIBRETRANSLATE_API_KEY: ${{ secrets.LIBRETRANSLATE_API_KEY }}
-        run: make i18n-update
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/.gcp-credentials.json
+        run: |
+          if [ -n "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}" ]; then
+            echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}" > "${GOOGLE_APPLICATION_CREDENTIALS}"
+          fi
+          make i18n-update
 
       - name: Commit changes
         run: |
