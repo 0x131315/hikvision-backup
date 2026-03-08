@@ -2,162 +2,184 @@
 
 Языки: [Английский](README.md) | [Английский](i18n/README.ru.md) | [Релиз](i18n/README.zh.md)
 
-Simple tool to back up videos from Hikvision cameras.  
-Created as an MVP pet project for private use.
+Простой инструмент для резервного копирования видео с камер Hikvision.
+Создан как минимально жизнеспособный продукт (MVP) для личного использования.
 
-### 🚀 Easy to Use — Set and Forget
+### 🚀 Простота в использовании — настроил и забыл
 
-Just configure the environment variables, run the binary — and you're done.  
-It handles retries, verifies file integrity, and keeps your archive up to date automatically.
+Просто настройте переменные среды, запустите исполняемый файл — и всё готово.
+Он обрабатывает повторные попытки, проверяет целостность файлов и автоматически поддерживает ваш архив в актуальном состоянии.
 
-Ideal for automation: run it as a cron job, systemd service, or background task.
-
----
-
-### How It Works
-
-The script performs the following steps to ensure all camera videos are downloaded reliably:
-
-#### 🔁 Retry Logic
-- Retries on **HTTP 5xx** and **401/403** responses up to `HTTP_RETRY_CNT` times
-
-#### 📷 Video Scanning
-- Scans the camera for videos from the last `SCAN_LAST_DAYS` days
-- For each video:
-    - Uses the **start date** as the filename
-    - Uses the **video size** as the expected file size
-
-#### 📁 Local File Check
-- For each video file in `DOWNLOAD_DIR`:
-    - **Check if the file exists**
-    - **Verify the file size**
-        - If the file is too small (incomplete or corrupted):
-            - Delete the local file
-            - Re-download the video
-
-#### ⬇️ Video Download
-- Downloads all new or missing videos
-- Ensures files are complete and match the expected size
-
+Идеально подходит для автоматизации: запускайте как задание cron, службу systemd или фоновую задачу.
 
 ---
 
+### Как это работает
 
-### ⚙️ Config
+Для обеспечения надежной загрузки всех видеозаписей с камер скрипт выполняет следующие шаги:
 
-All parameters are set via a `.env` file in the project root or via env-variables in console. Env-variables have a higher priority.
+#### 🔁 Логика повторных попыток
+- Повторные попытки для ответов **HTTP 5xx** и **401/403** до количества раз `HTTP_RETRY_CNT`
 
-#### Required Variables
+#### 📷 Сканирование видео
+- Сканирует камеру на наличие видеозаписей за последние `SCAN_LAST_DAYS` дней
+- Для каждого видео:
 
-Required vars have no default and must be set.
+- Использует **дату начала** в качестве имени файла
 
-- **`DOWNLOAD_DIR`** — Path where downloaded videos will be saved  
-  _Example_: `/home/user/camera_videos`
+- Использует **размер видео** в качестве ожидаемого размера файла
 
-- **`CAM_HOST`** — Camera hostname or IP address  
-  _Example_: `192.168.1.10`
+#### 📁 Проверка локального файла
+- Для каждого видеофайла в `DOWNLOAD_DIR`:
 
-- **`CAM_USER`** — Username for camera authentication  
-  _Example_: `admin`
+- **Проверить, существует ли файл**
 
-#### Optional Variables
+- **Проверить размер файла**
 
-- **`CAM_PASS`** — Password for camera authentication
-  _(default: empty; can be empty if the camera allows it)_
+- Если файл слишком мал (неполный или поврежден):
 
-- **`SCAN_LAST_DAYS`** — Number of days to look back when scanning for videos  
-  _Example_: `3` (scans the last 3 days)
-  _(default: 0; 0 means no limit)_
+- Удалить локальный файл
 
-- **`SCAN_FROM_LOCAL_LATEST`** — If greater than `0`, scan the download directory first, find the newest local file by date in its name, subtract this number of days, and use the smaller window between that value and `SCAN_LAST_DAYS`  
-  _Example_: `2`
-  _(default: 0; 0 means disabled; negative values are treated as absolute)_
+- Перезагрузить видео
 
-- **`HTTP_RETRY_CNT`** — Number of retry send http request on error  
-  _Example_: `3` (retry 3 times)
-  _(default: 3)_
+#### ⬇️ Загрузка видео
+- Загружает все новые или отсутствующие видео
+- Гарантирует полноту файлов и соответствие ожидаемому размеру
 
-- **`HTTP_TIMEOUT`** — Timeout for wait http response and max time for download video file  
-  _Example_: `3` (wait 3 seconds)
-  _(default: 120, off limit: 0)_
-
-- **`NO_PROXY`** — Set to `true` to ignore the `http_proxy/https_proxy` environment variable (e.g. for direct access to local IPs or debug)  
-  _Values_: `true` / `false`
-  _(default: false)_
-
-
-#### Command line options
-- version
-```bash
-   ./hikvision-backup -v
-```
-
-- debug info
-```bash
-   ./hikvision-backup -vv
-```
-- http stream
-```bash
-   ./hikvision-backup -vvv
-```
 
 ---
 
 
-### ▶️ How to Use
+### ⚙️ Конфигурация
 
-1. Download [latest](https://github.com/0x131315/hikvision-backup/releases/latest) version for your machine
-2. Unpack the archive on any directory, e.g. `hidownload`
-3. Enter the directory:
+Все параметры задаются через файл `.env` в корне проекта или через переменные окружения в консоли. Переменные окружения имеют более высокий приоритет.
+
+#### Обязательные переменные
+
+Обязательные переменные не имеют значений по умолчанию и должны быть заданы.
+
+- **`DOWNLOAD_DIR`** — Путь, куда будут сохранены загруженные видеофайлы
+
+_Пример_: `/home/user/camera_videos`
+
+- **`CAM_HOST`** — Имя хоста или IP-адрес камеры
+
+_Пример_: `192.168.1.10`
+
+- **`CAM_USER`** — Имя пользователя для аутентификации камеры
+
+_Пример_: `admin`
+
+#### Дополнительные переменные
+
+- **`CAM_PASS`** — Пароль для аутентификации камеры
+_(по умолчанию: пусто; может быть пустым, если камера это позволяет)_
+
+- **`SCAN_LAST_DAYS`** — Количество дней, за которые следует искать видеофайлы при сканировании
+
+_Пример_: `3` (сканирует последние 3 дня)
+
+_(по умолчанию: 0; 0 означает отсутствие ограничений)_
+
+- **`SCAN_FROM_LOCAL_LATEST`** — Если значение больше `0`, сначала просканируйте каталог загрузок, найдите самый новый локальный файл по дате в его имени, вычтите это число дней и используйте меньший интервал между этим значением и `SCAN_LAST_DAYS`.
+
+_Пример_: `2`
+
+_(по умолчанию: 0; 0 означает отключение; отрицательные значения рассматриваются как абсолютные)_
+
+- **`HTTP_RETRY_CNT`** — Количество повторных попыток отправки HTTP-запроса при ошибке
+
+_Пример_: `3` (3 попытки)
+
+_(по умолчанию: 3)_
+
+- **`HTTP_TIMEOUT`** — Тайм-аут ожидания HTTP-ответа и максимальное время загрузки видеофайла
+
+_Пример_: `3` (ожидание 3 секунды)
+
+_(по умолчанию: 120, ограничение: 0)_
+
+- **`NO_PROXY`** — Установите значение `true`, чтобы игнорировать переменную среды `http_proxy/https_proxy` (например, для прямого доступа к локальным IP-адресам или отладки)
+
+_Значения_: `true` / `false`
+_(по умолчанию: false)_
+
+
+#### Параметры командной строки
+- версия
 ```bash
-   cd hidownload
-```
-4. Copy the example config:
-```bash
-   cp .env.dist .env
-```
-5. Edit the `.env` file with your camera settings
-6. Run the program:
-```bash
-   ./hikvision-backup
+
+./hikvision-backup -v
 ```
 
-#### ✅ That's it!
+- отладочная информация
+```bash
 
-Simple "set and forget" tool — ideal for running via cron, systemd, or any task scheduler.
-
-### 🛠️ How to Build
-
-1. [Install Go](https://go.dev/doc/install) if not already installed
-2. Create a working directory:
-```bash
-   mkdir hidownload
+./hikvision-backup -vv
 ```
-3. Clone the repository:
+- HTTP-поток
 ```bash
-   git clone https://github.com/0x131315/hikvision-backup.git hidownload
-```
-4. Enter the project directory:
-```bash
-   cd hidownload
-```
-5. Build the project:
-```bash
-   make build
-```
-6. Copy the example config:
-```bash
-   cp .env.dist .env
-```
-7. Edit `.env` with your camera settings:
-```bash
-   nano .env
-```
-8. Run the program:
-```bash
-   ./hikvision-backup
+./hikvision-backup -vvv
 ```
 
-### 🧾 Release Process
+---
 
-See `RELEASE.md` for the release workflow and tagging rules.
+
+### ▶️ Как использовать
+
+1. Загрузите [последнюю](https://github.com/0x131315/hikvision-backup/releases/latest) версию для вашего компьютера.
+2. Распакуйте архив в любую директорию, например, `hidownload`.
+3. Перейдите в директорию:
+```bash
+cd hidownload
+```
+4. Скопируйте пример конфигурации:
+```bash
+cp .env.dist .env
+```
+5. Отредактируйте файл `.env`, указав настройки вашей камеры.
+6. Запустите программу:
+```bash
+./hikvision-backup
+```
+
+#### ✅ Вот и всё!
+
+Простой инструмент, который не требует настройки — идеально подходит для запуска через cron, systemd или любой другой планировщик задач.
+
+### 🛠️ Как построить
+
+1. [Установите Go](https://go.dev/doc/install), если он еще не установлен.
+2. Создайте рабочую директорию:
+```bash
+mkdir hidownload
+```
+3. Клонируйте репозиторий:
+```bash
+git clone https://github.com/0x131315/hikvision-backup.git hidownload
+```
+4. Перейдите в директорию проекта:
+```bash
+cd hidownload
+```
+5. Соберите проект:
+```bash
+make build
+```
+6. Скопируйте пример конфигурации:
+```bash
+cp .env.dist .env
+```
+7. Отредактируйте файл `.env`, указав настройки вашей камеры:
+```bash
+nano .env
+```
+8. Запустите программу:
+```bash
+./hikvision-backup
+```
+
+### 🧾 Процесс выпуска
+
+См. файл `RELEASE.md` для получения информации о процессе выпуска и правилах присвоения тегов.
+
