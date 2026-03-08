@@ -1,6 +1,6 @@
 {
   "source_hash": "7d7eb256b17b02eb9ece2e77bd4974f90a8163e011f7526ca939fee8659c5466",
-  "updated_at": "2026-03-08T01:42:48Z",
+  "updated_at": "2026-03-08T01:47:33Z",
   "blocks": {
     "011257e80de43fbde0d344bc818191dcd96f433ed0a9a6c2dc834f3584f9ccae": "1. [Install Go](https://go.dev/doc/install) if not already installed\n2. Create a working directory:\n```bash\n   mkdir hidownload\n```\n3. Clone the repository:\n```bash\n   git clone https://github.com/0x131315/hikvision-backup.git hidownload\n```\n4. Enter the project directory:\n```bash\n   cd hidownload\n```\n5. Build the project:\n```bash\n   make build\n```\n6. Copy the example config:\n```bash\n   cp .env.dist .env\n```\n7. Edit `.env` with your camera settings:\n```bash\n   nano .env\n```\n8. Run the program:\n```bash\n   ./hikvision-backup\n```",
     "1cd1b2b37e2b18c0165a993f63d2084ad12f8744ec074dcc9ca165bd11303d47": "Simple \"set and forget\" tool — ideal for running via cron, systemd, or any task scheduler.",
