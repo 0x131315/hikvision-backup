@@ -209,17 +209,20 @@ func translateMissing(lang language, texts []string, initMode bool) ([]string, e
 		return texts, nil
 	}
 
-	key := os.Getenv("DEEPL_API_KEY")
-	if key == "" {
-		return nil, fmt.Errorf("DEEPL_API_KEY is not set")
+	if key := os.Getenv("DEEPL_API_KEY"); key != "" {
+		endpoint := os.Getenv("DEEPL_API_URL")
+		if endpoint == "" {
+			endpoint = deeplEndpointForKey(key)
+		}
+		return callDeepL(endpoint, key, texts, lang.TargetLang)
 	}
 
-	endpoint := os.Getenv("DEEPL_API_URL")
-	if endpoint == "" {
-		endpoint = deeplEndpointForKey(key)
+	libreURL := os.Getenv("LIBRETRANSLATE_URL")
+	if libreURL == "" {
+		return nil, fmt.Errorf("DEEPL_API_KEY is not set and LIBRETRANSLATE_URL is empty")
 	}
-
-	return callDeepL(endpoint, key, texts, lang.TargetLang)
+	libreKey := os.Getenv("LIBRETRANSLATE_API_KEY")
+	return callLibreTranslate(libreURL, libreKey, texts, lang.Code)
 }
 
 func callDeepL(endpoint, key string, texts []string, targetLang string) ([]string, error) {
@@ -282,6 +285,57 @@ func deeplEndpointForKey(key string) string {
 
 func isQuotaExceeded(err error) bool {
 	return strings.Contains(strings.ToLower(err.Error()), "quota exceeded")
+}
+
+func callLibreTranslate(endpoint, key string, texts []string, targetLang string) ([]string, error) {
+	endpoint = strings.TrimRight(endpoint, "/") + "/translate"
+
+	out := make([]string, len(texts))
+	for i, text := range texts {
+		payload := map[string]string{
+			"q":      text,
+			"source": "en",
+			"target": targetLang,
+			"format": "text",
+		}
+		if key != "" {
+			payload["api_key"] = key
+		}
+
+		data, err := json.Marshal(payload)
+		if err != nil {
+			return nil, err
+		}
+
+		req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(data))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return nil, fmt.Errorf("libretranslate error: %s", strings.TrimSpace(string(body)))
+		}
+
+		var parsed struct {
+			TranslatedText string `json:"translatedText"`
+		}
+		if err := json.Unmarshal(body, &parsed); err != nil {
+			return nil, err
+		}
+		out[i] = parsed.TranslatedText
+	}
+	return out, nil
 }
 
 func loadTM(path string) (tmFile, error) {
