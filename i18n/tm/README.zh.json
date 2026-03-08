@@ -1,6 +1,6 @@
 {
-  "source_hash": "b0447ae1b8b257d89510a3e424e6ec72b7276a003693fdec1d450f099bea8a13",
-  "updated_at": "2026-03-07T23:34:10Z",
+  "source_hash": "7d7eb256b17b02eb9ece2e77bd4974f90a8163e011f7526ca939fee8659c5466",
+  "updated_at": "2026-03-08T01:42:49Z",
   "blocks": {
     "011257e80de43fbde0d344bc818191dcd96f433ed0a9a6c2dc834f3584f9ccae": "1. [Install Go](https://go.dev/doc/install) if not already installed\n2. Create a working directory:\n```bash\n   mkdir hidownload\n```\n3. Clone the repository:\n```bash\n   git clone https://github.com/0x131315/hikvision-backup.git hidownload\n```\n4. Enter the project directory:\n```bash\n   cd hidownload\n```\n5. Build the project:\n```bash\n   make build\n```\n6. Copy the example config:\n```bash\n   cp .env.dist .env\n```\n7. Edit `.env` with your camera settings:\n```bash\n   nano .env\n```\n8. Run the program:\n```bash\n   ./hikvision-backup\n```",
     "1cd1b2b37e2b18c0165a993f63d2084ad12f8744ec074dcc9ca165bd11303d47": "Simple \"set and forget\" tool — ideal for running via cron, systemd, or any task scheduler.",
@@ -23,6 +23,7 @@
     "929f8574f3d6ce97d1b3c0c79c7ea84c66d3b4f0b5365a46b5486cf61c903507": "### ⚙️ Config",
     "94d71e14f0cd61508cdd7d7c06f2cb22bf5201981d5192c45a5e89775e5e59cc": "### 🚀 Easy to Use — Set and Forget",
     "a38124c32f7bfeeccd266352bbe6b1136882218367d0a9b1666f14afc5e9b9ea": "- **`HTTP_TIMEOUT`** — Timeout for wait http response and max time for download video file  \n  _Example_: `3` (wait 3 seconds)\n  _(default: 120, off limit: 0)_",
+    "a469903c6d8cf51487558034bc0d470c5faf85e93148c27c91e6df0ec3beddea": "语言：[英文](README.md) | [英文](i18n/README.ru.md) | [发布版本](i18n/README.zh.md)",
     "a855e76081be21800c095b130ce9186e001aea7322341c28c803cbfa0f81bf72": "Just configure the environment variables, run the binary — and you're done.  \nIt handles retries, verifies file integrity, and keeps your archive up to date automatically.",
     "bbdbd21e09f863e839d62849ec75c9b034ba595cb905a392574b5244ae83aec4": "#### Optional Variables",
     "bbf78ef979ed941f9d277f4e8ee9e1a6b74db2a86e7bd9c355b0a4c047998564": "### ▶️ How to Use",

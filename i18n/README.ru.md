@@ -1,5 +1,7 @@
 # hikvision-backup
 
+Языки: [Английский](README.md) | [Английский](i18n/README.ru.md) | [Релиз](i18n/README.zh.md)
+
 Simple tool to back up videos from Hikvision cameras.  
 Created as an MVP pet project for private use.
 
