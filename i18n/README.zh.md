@@ -1,6 +1,6 @@
 #海康威视备份
 
-语言：[English](../README.md) | [Русский](README.ru.md) | [中文](README.zh.md)
+语言：[English](../README.md) | [Русский](README.ru.md) | 中文
 
 用于备份海康威视摄像头视频的简易工具。
 
