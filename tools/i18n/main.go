@@ -41,6 +41,7 @@ var (
 func main() {
 	checkOnly := flag.Bool("check", false, "check translations without updating")
 	initMode := flag.Bool("init", false, "bootstrap translations using source text when missing")
+	force := flag.Bool("force", false, "retranslate all blocks and overwrite existing translations")
 	flag.Parse()
 
 	source, err := os.ReadFile(sourceFile)
@@ -50,14 +51,14 @@ func main() {
 	sourceHash := hashString(string(source))
 
 	for _, lang := range langs {
-		if err := processLanguage(lang, blocks, seps, sourceHash, *checkOnly, *initMode); err != nil {
+		if err := processLanguage(lang, blocks, seps, sourceHash, *checkOnly, *initMode, *force); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
 }
 
-func processLanguage(lang language, blocks, seps []string, sourceHash string, checkOnly, initMode bool) error {
+func processLanguage(lang language, blocks, seps []string, sourceHash string, checkOnly, initMode, force bool) error {
 	tmPath := filepath.Join(tmDir, fmt.Sprintf("README.%s.json", lang.Code))
 	outPath := filepath.Join(i18nDir, fmt.Sprintf("README.%s.md", lang.Code))
 
@@ -72,6 +73,10 @@ func processLanguage(lang language, blocks, seps []string, sourceHash string, ch
 
 	if err := syncFromTranslation(outPath, blocks, seps, tm); err != nil {
 		return err
+	}
+
+	if force {
+		tm.Blocks = make(map[string]string)
 	}
 
 	missingIdx, missingText := findMissing(blocks, tm)
