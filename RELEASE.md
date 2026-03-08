@@ -10,6 +10,15 @@ This project uses git tags and GoReleaser. Release commands are defined in `Make
 - Ensure the current commit does not already have a `v*` tag.
 - Ensure the target tag does not already exist in the repository.
 
+## Pre-Release Checks
+
+Before tagging, run:
+
+- `make i18n-sync` (updates and commits translations)
+- `make fmt-check`
+
+The `next-*` targets run `make i18n-check` automatically, not `i18n-sync`.
+
 ## Tagging
 
 Choose exactly one of the following:

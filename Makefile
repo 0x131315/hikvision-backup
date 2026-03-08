@@ -79,7 +79,12 @@ else \
 fi
 endef
 
-.PHONY: build test fmt fmt-check i18n-update i18n-check i18n-sync next-alpha next-beta next-patch next-minor next-major release
+define CHECK_PRE_RELEASE
+	@$(MAKE) fmt-check
+	@$(MAKE) i18n-check
+endef
+
+.PHONY: build test fmt fmt-check i18n-update i18n-check i18n-sync prepare-release next-alpha next-beta next-patch next-minor next-major release
 # Build binary with version/commit/date baked via ldflags
 build:
 	@echo "==> Building ${APP_NAME}..."
@@ -141,6 +146,7 @@ next-alpha:
 	$(call CHECK_NOT_ON_RELEASE_BRANCH,next-alpha)
 	$(call CHECK_NO_VERSION_TAG)
 	$(call CHECK_TAG_NOT_EXISTS,$(NEW_VERSION_ALPHA))
+	$(call CHECK_PRE_RELEASE)
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_ALPHA)..."
 	git tag $(NEW_VERSION_ALPHA)
 
@@ -149,6 +155,7 @@ next-beta:
 	$(call CHECK_NOT_ON_RELEASE_BRANCH,next-beta)
 	$(call CHECK_NO_VERSION_TAG)
 	$(call CHECK_TAG_NOT_EXISTS,$(NEW_VERSION_BETA))
+	$(call CHECK_PRE_RELEASE)
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_BETA)..."
 	git tag $(NEW_VERSION_BETA)
 
@@ -157,6 +164,7 @@ next-patch:
 	$(call CHECK_ON_RELEASE_BRANCH,next-patch)
 	$(call CHECK_NO_VERSION_TAG)
 	$(call CHECK_TAG_NOT_EXISTS,$(NEW_VERSION_PATCH))
+	$(call CHECK_PRE_RELEASE)
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_PATCH)..."
 	git tag $(NEW_VERSION_PATCH)
 
@@ -165,6 +173,7 @@ next-minor:
 	$(call CHECK_ON_RELEASE_BRANCH,next-minor)
 	$(call CHECK_NO_VERSION_TAG)
 	$(call CHECK_TAG_NOT_EXISTS,$(NEW_VERSION_MINOR))
+	$(call CHECK_PRE_RELEASE)
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_MINOR)..."
 	git tag $(NEW_VERSION_MINOR)
 
@@ -173,6 +182,7 @@ next-major:
 	$(call CHECK_ON_RELEASE_BRANCH,next-major)
 	$(call CHECK_NO_VERSION_TAG)
 	$(call CHECK_TAG_NOT_EXISTS,$(NEW_VERSION_MAJOR))
+	$(call CHECK_PRE_RELEASE)
 	@echo "==> New ${APP_NAME} version $(NEW_VERSION_MAJOR)..."
 	git tag $(NEW_VERSION_MAJOR)
 
@@ -181,8 +191,14 @@ release:
 	$(call CHECK_ON_RELEASE_BRANCH,release)
 	$(call CHECK_TAG_EXISTS,$(VERSION))
 	$(call CHECK_TAG_ON_HEAD,$(VERSION))
-	@$(MAKE) fmt-check
-	@$(MAKE) i18n-sync
+	$(call CHECK_PRE_RELEASE)
 	@echo "==> Releasing ${APP_NAME} version $(VERSION)..."
 	git push origin $(RELEASE_BRANCH)
 	git push origin $(VERSION)
+
+# Prepare for release (run on release branch before tagging)
+prepare-release:
+	$(call CHECK_ON_RELEASE_BRANCH,prepare-release)
+	$(call CHECK_NO_VERSION_TAG)
+	@$(MAKE) fmt-check
+	@$(MAKE) i18n-sync
