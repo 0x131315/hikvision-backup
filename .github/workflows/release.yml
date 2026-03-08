@@ -24,6 +24,9 @@ jobs:
         with:
           go-version: stable
 
+      - name: Check Go formatting
+        run: make fmt-check
+
       - name: Run tests
         run: go test ./...
 

@@ -79,7 +79,7 @@ else \
 fi
 endef
 
-.PHONY: build test i18n-update i18n-check next-alpha next-beta next-patch next-minor next-major release
+.PHONY: build test fmt fmt-check i18n-update i18n-check next-alpha next-beta next-patch next-minor next-major release
 # Build binary with version/commit/date baked via ldflags
 build:
 	@echo "==> Building ${APP_NAME}..."
@@ -89,6 +89,20 @@ build:
 test:
 	@echo "==> Running tests..."
 	go test ./...
+
+# Format Go files
+fmt:
+	@echo "==> Formatting Go files..."
+	gofmt -w .
+
+# Check Go formatting
+fmt-check:
+	@echo "==> Checking Go formatting..."
+	@if [ -n "$$(gofmt -l .)" ]; then \
+		echo "gofmt issues:"; \
+		gofmt -l .; \
+		exit 1; \
+	fi
 
 # Update translations (requires DEEPL_API_KEY)
 i18n-update:
@@ -155,6 +169,7 @@ release:
 	$(call CHECK_ON_RELEASE_BRANCH,release)
 	$(call CHECK_TAG_EXISTS,$(VERSION))
 	$(call CHECK_TAG_ON_HEAD,$(VERSION))
+	@$(MAKE) fmt-check
 	@echo "==> Releasing ${APP_NAME} version $(VERSION)..."
 	git push origin $(RELEASE_BRANCH)
 	git push origin $(VERSION)
