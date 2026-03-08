@@ -31,6 +31,9 @@ jobs:
       - name: Update translations
         env:
           DEEPL_API_KEY: ${{ secrets.DEEPL_API_KEY }}
+          GOOGLE_TRANSLATE_API_KEY: ${{ secrets.GOOGLE_TRANSLATE_API_KEY }}
+          LIBRETRANSLATE_URL: ${{ secrets.LIBRETRANSLATE_URL }}
+          LIBRETRANSLATE_API_KEY: ${{ secrets.LIBRETRANSLATE_API_KEY }}
         run: make i18n-update
 
       - name: Commit changes
