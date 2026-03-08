@@ -1,6 +1,6 @@
 #海康威视备份
 
-语言：[英文](README.md) | [英文](i18n/README.ru.md) | [发布版本](i18n/README.zh.md)
+语言：[English](../README.md) | [Русский](README.ru.md) | [中文](README.zh.md)
 
 用于备份海康威视摄像头视频的简易工具。
 
@@ -243,4 +243,3 @@ nano .env
 ### 🧾 发布流程
 
 请参阅 `RELEASE.md` 文件，了解发布工作流程和标签规则。
-
