@@ -19,6 +19,7 @@ import (
 type language struct {
 	Code       string
 	TargetLang string
+	GoogleLang string
 }
 
 type tmFile struct {
@@ -32,8 +33,8 @@ var (
 	i18nDir    = "i18n"
 	tmDir      = filepath.Join(i18nDir, "tm")
 	langs      = []language{
-		{Code: "ru", TargetLang: "RU"},
-		{Code: "zh", TargetLang: "ZH"},
+		{Code: "ru", TargetLang: "RU", GoogleLang: "ru"},
+		{Code: "zh", TargetLang: "ZH", GoogleLang: "zh-CN"},
 	}
 	sepRe = regexp.MustCompile(`\n{2,}`)
 )
@@ -222,9 +223,17 @@ func translateMissing(lang language, texts []string, initMode bool) ([]string, e
 		return callDeepL(endpoint, key, texts, lang.TargetLang)
 	}
 
+	if key := os.Getenv("GOOGLE_TRANSLATE_API_KEY"); key != "" {
+		endpoint := os.Getenv("GOOGLE_TRANSLATE_API_URL")
+		if endpoint == "" {
+			endpoint = "https://translation.googleapis.com/language/translate/v2"
+		}
+		return callGoogleTranslate(endpoint, key, texts, lang.GoogleLang)
+	}
+
 	libreURL := os.Getenv("LIBRETRANSLATE_URL")
 	if libreURL == "" {
-		return nil, fmt.Errorf("DEEPL_API_KEY is not set and LIBRETRANSLATE_URL is empty")
+		return nil, fmt.Errorf("DEEPL_API_KEY is not set, GOOGLE_TRANSLATE_API_KEY is not set, and LIBRETRANSLATE_URL is empty")
 	}
 	libreKey := os.Getenv("LIBRETRANSLATE_API_KEY")
 	return callLibreTranslate(libreURL, libreKey, texts, lang.Code)
@@ -341,6 +350,69 @@ func callLibreTranslate(endpoint, key string, texts []string, targetLang string)
 		out[i] = parsed.TranslatedText
 	}
 	return out, nil
+}
+
+func callGoogleTranslate(endpoint, key string, texts []string, targetLang string) ([]string, error) {
+	endpoint = strings.TrimRight(endpoint, "/")
+	form := url.Values{}
+	form.Set("key", key)
+	form.Set("target", targetLang)
+	form.Set("format", "text")
+	for _, text := range texts {
+		form.Add("q", text)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("google translate error: %s", strings.TrimSpace(string(body)))
+	}
+
+	var parsed struct {
+		Data struct {
+			Translations []struct {
+				TranslatedText string `json:"translatedText"`
+			} `json:"translations"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return nil, err
+	}
+	if len(parsed.Data.Translations) != len(texts) {
+		return nil, fmt.Errorf("unexpected translation count: %d", len(parsed.Data.Translations))
+	}
+
+	out := make([]string, len(texts))
+	for i, tr := range parsed.Data.Translations {
+		out[i] = htmlUnescape(tr.TranslatedText)
+	}
+	return out, nil
+}
+
+func htmlUnescape(s string) string {
+	replacer := strings.NewReplacer(
+		"&amp;", "&",
+		"&lt;", "<",
+		"&gt;", ">",
+		"&quot;", "\"",
+		"&#39;", "'",
+	)
+	return replacer.Replace(s)
 }
 
 func loadTM(path string) (tmFile, error) {
