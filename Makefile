@@ -79,7 +79,7 @@ else \
 fi
 endef
 
-.PHONY: build test fmt fmt-check i18n-update i18n-check next-alpha next-beta next-patch next-minor next-major release
+.PHONY: build test fmt fmt-check i18n-update i18n-check i18n-sync next-alpha next-beta next-patch next-minor next-major release
 # Build binary with version/commit/date baked via ldflags
 build:
 	@echo "==> Building ${APP_NAME}..."
@@ -113,6 +113,18 @@ i18n-update:
 i18n-check:
 	@echo "==> Checking translations..."
 	go run ./tools/i18n --check
+
+# Update translations and commit changes (run before tagging)
+i18n-sync:
+	@echo "==> Updating translations and committing..."
+	go run ./tools/i18n
+	@$(MAKE) i18n-check
+	@if ! git diff --quiet; then \
+		git add i18n/README.*.md i18n/tm/README.*.json; \
+		git commit -m "docs: update translations"; \
+	else \
+		echo "No translation changes to commit."; \
+	fi
 
 .PHONY: bump
 # Update deps + vendor + commit in one step
@@ -170,6 +182,7 @@ release:
 	$(call CHECK_TAG_EXISTS,$(VERSION))
 	$(call CHECK_TAG_ON_HEAD,$(VERSION))
 	@$(MAKE) fmt-check
+	@$(MAKE) i18n-sync
 	@echo "==> Releasing ${APP_NAME} version $(VERSION)..."
 	git push origin $(RELEASE_BRANCH)
 	git push origin $(VERSION)
