@@ -14,8 +14,7 @@ This project uses git tags and GoReleaser. Release commands are defined in `Make
 
 Before tagging, run:
 
-- `make i18n-sync` (updates and commits translations)
-- `make fmt-check`
+- `make prepare-release` (checks branch, ensures no tag, runs fmt and i18n-sync)
 
 The `next-*` targets run `make i18n-check` automatically, not `i18n-sync`.
 
@@ -56,7 +55,7 @@ This runs:
 
 ## Translation Automation
 
-Translations are managed via `tools/i18n` and updated automatically in CI.
+Translations are managed via `tools/i18n` and updated manually via `make i18n-sync`.
 
 Environment variables:
 - **`DEEPL_API_KEY`** — DeepL API key (preferred).
