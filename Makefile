@@ -112,7 +112,7 @@ fmt-check:
 # Update translations (requires DEEPL_API_KEY)
 i18n-update:
 	@echo "==> Updating translations..."
-	go run ./tools/i18n
+	go run ./tools/i18n $(if $(I18N_FORCE),--force)
 
 # Check translations (no API calls)
 i18n-check:
@@ -122,7 +122,7 @@ i18n-check:
 # Update translations and commit changes (run before tagging)
 i18n-sync:
 	@echo "==> Updating translations and committing..."
-	go run ./tools/i18n
+	go run ./tools/i18n $(if $(I18N_FORCE),--force)
 	@$(MAKE) i18n-check
 	@if ! git diff --quiet; then \
 		git add i18n/README.*.md i18n/tm/README.*.json; \
