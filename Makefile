@@ -170,16 +170,21 @@ i18n-subtree-split:
 i18n-module-release:
 	@split_sha="$$(git subtree split --prefix=$(I18N_SUBTREE_PREFIX))"; \
 	remote_sha="$$(git ls-remote $(I18N_PUBLISH_REMOTE) refs/heads/main | awk '{print $$1}')"; \
+	existing_tag_on_split="$$(git ls-remote --tags $(I18N_PUBLISH_REMOTE) 'refs/tags/readme-i18n-sync/v*' | awk -v sha="$$split_sha" '$$1==sha {sub("refs/tags/","",$$2); print $$2; exit}')"; \
+	if [ -n "$$existing_tag_on_split" ]; then \
+		echo "No module changes to release: subtree $$split_sha is already tagged as $$existing_tag_on_split."; \
+		exit 0; \
+	fi; \
 	tag="$(I18N_MODULE_TAG)"; \
 	if [ -z "$$tag" ]; then \
 		tag="$$( $(MAKE) --no-print-directory -s -C $(I18N_TOOL_DIR) print-next-tag )"; \
 	fi; \
 	remote_tag_sha="$$(git ls-remote $(I18N_PUBLISH_REMOTE) refs/tags/$$tag | awk '{print $$1}')"; \
+	if [ -n "$$remote_tag_sha" ]; then \
+		echo "Tag $$tag already exists on $(I18N_PUBLISH_REMOTE) (sha $$remote_tag_sha)."; \
+		exit 1; \
+	fi; \
 	if [ -n "$$remote_sha" ] && [ "$$split_sha" = "$$remote_sha" ]; then \
-		if [ -n "$$remote_tag_sha" ]; then \
-			echo "No module changes to release and tag $$tag already exists on $(I18N_PUBLISH_REMOTE)."; \
-			exit 0; \
-		fi; \
 		echo "Module main is up-to-date; pushing missing tag $$tag for $$split_sha..."; \
 	else \
 		echo "==> Releasing i18n module tag $$tag to $(I18N_PUBLISH_REMOTE) (subtree $$split_sha)..."; \
