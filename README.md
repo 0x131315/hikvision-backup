@@ -133,6 +133,10 @@ Examples:
 
 Simple "set and forget" tool — ideal for running via cron, systemd, or any task scheduler.
 
+
+---
+
+
 ### 🛠️ Build from Source
 
 1. [Install Go](https://go.dev/doc/install) if not already installed
