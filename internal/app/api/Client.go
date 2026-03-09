@@ -39,14 +39,13 @@ func NewApiClient(ctx context.Context, conf config.Config) *ApiClient {
 
 func (api *ApiClient) GetVideoList() VideoList {
 	slog.Info("Request remote file list...")
+	if api.conf.ScanLastDays == 0 {
+		return api.getVideoListUnbounded()
+	}
+
 	var listVideos = make(VideoList)
 	var timebreak = time.Now().UTC()
-	var timestart time.Time
-	if api.conf.ScanLastDays == 0 {
-		timestart = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	} else {
-		timestart = time.Now().UTC().AddDate(0, 0, -1*api.conf.ScanLastDays)
-	}
+	var timestart = time.Now().UTC().AddDate(0, 0, -1*api.conf.ScanLastDays)
 	var timeend = timestart.AddDate(0, 1, 0)
 	var cnt int
 	var resp *CMSearchResult
@@ -97,6 +96,53 @@ func (api *ApiClient) GetVideoList() VideoList {
 		if timestart.After(timebreak) {
 			break
 		}
+	}
+
+	slog.Info("Request remote file list complete", "count", len(listVideos))
+
+	return listVideos
+}
+
+func (api *ApiClient) getVideoListUnbounded() VideoList {
+	var listVideos = make(VideoList)
+	timestart := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	timeend := time.Now().UTC()
+	var cnt int
+	var offset int
+
+	for {
+		select {
+		case <-api.ctx.Done():
+			return listVideos
+		default:
+		}
+
+		requestStr := buildSearchRequest(offset, limit, api.conf.ScanLastDays, &timestart, &timeend)
+		responseStr := api.httpClient.Send("POST", searchPath, requestStr).Value()
+		resp := parseResponse(responseStr)
+		if offset == 0 {
+			slog.Info("found files", "count", resp.TotalMatches)
+		}
+
+		if len(resp.MatchList) == 0 {
+			break
+		}
+
+		cnt += len(resp.MatchList)
+		slog.Debug("requested file info",
+			"count", fmt.Sprintf("%d/%d", cnt, resp.TotalMatches),
+			"total", len(listVideos)+len(resp.MatchList),
+		)
+
+		for _, item := range resp.MatchList {
+			video := buildVideo(item)
+			listVideos[video.Time.Format(timeFormat)] = video
+		}
+
+		if cnt >= resp.TotalMatches {
+			break
+		}
+		offset += limit
 	}
 
 	slog.Info("Request remote file list complete", "count", len(listVideos))
