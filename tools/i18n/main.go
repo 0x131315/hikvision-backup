@@ -75,8 +75,12 @@ func processLanguage(lang language, blocks, seps []string, sourceHash string, ch
 		tm.Blocks = make(map[string]string)
 	}
 
-	if err := syncFromTranslation(outPath, blocks, seps, tm); err != nil {
-		return err
+	// Positional sync is only safe for bootstrap (empty TM).
+	// When source changes, syncing by index can mask missing translations.
+	if tm.SourceHash == "" && len(tm.Blocks) == 0 {
+		if err := syncFromTranslation(outPath, blocks, seps, tm); err != nil {
+			return err
+		}
 	}
 
 	if force {
