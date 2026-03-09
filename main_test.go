@@ -13,4 +13,3 @@ func TestNormalizeLegacyArgs(t *testing.T) {
 		t.Fatalf("unexpected normalized args: got=%v want=%v", got, want)
 	}
 }
-

@@ -36,6 +36,7 @@ I18N_OUT_DIR ?= ../../i18n
 I18N_TM_DIR ?=
 I18N_PUBLISH_REMOTE ?= readme-i18n-sync
 I18N_RUN_BASE = cd $(I18N_TOOL_DIR) && go run ./cmd/readme-i18n-sync --source $(I18N_SOURCE) --i18n-dir $(I18N_OUT_DIR) $(if $(I18N_TM_DIR),--tm-dir $(I18N_TM_DIR),)
+GOFMT_PATHS = -path ./vendor -o -path ./.git -o -path ./.cache -o -path ./bin
 
 LDFLAGS_STRING = -X 'main.version=${VERSION}' -X 'main.commit=${COMMIT}' -X 'main.buildDate=${DATE}'
 LDFLAGS = -ldflags="${LDFLAGS_STRING}"
@@ -105,14 +106,15 @@ test:
 # Format Go files
 fmt:
 	@echo "==> Formatting Go files..."
-	gofmt -w .
+	@find . \( $(GOFMT_PATHS) \) -prune -o -type f -name '*.go' -print0 | xargs -0r gofmt -w
 
 # Check Go formatting
 fmt-check:
 	@echo "==> Checking Go formatting..."
-	@if [ -n "$$(gofmt -l .)" ]; then \
+	@fmt_issues="$$(find . \( $(GOFMT_PATHS) \) -prune -o -type f -name '*.go' -print0 | xargs -0r gofmt -l)"; \
+	if [ -n "$$fmt_issues" ]; then \
 		echo "gofmt issues:"; \
-		gofmt -l .; \
+		echo "$$fmt_issues"; \
 		exit 1; \
 	fi
 
