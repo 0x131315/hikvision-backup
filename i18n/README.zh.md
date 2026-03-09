@@ -1,173 +1,45 @@
 #海康威视备份
 
-语言：[English](../README.md) | [Русский](README.ru.md) | 中文
+Languages: [English](../README.md) | [Русский](README.ru.md) | 中文
 
-用于备份海康威视摄像头视频的简易工具。
+此工具可从海康威视摄像头下载备份视频。
 
-最初是作为个人使用而开发的MVP（最小可行产品）项目。
+这是一个供个人使用的小项目。
 
-### 🚀 简单易用 — 设置后即可安心使用
+## 目录
 
-只需配置环境变量，运行二进制文件——就完成了。
+- [快速入门](#quick-start)
 
-它会自动处理重试、验证文件完整性并保持您的归档文件最新。
+- [配置](#configuration)
 
-非常适合自动化：可将其作为 cron 作业、systemd 服务或后台任务运行。
+- [CLI 参考](#cli-reference)
 
----
+- [工作原理](#how-it-works)
 
-### 工作原理
+- [从源代码构建](#build-from-source)
 
-该脚本执行以下步骤，以确保所有摄像头视频都能可靠下载：
+- [发布流程](#release-process)
 
-#### 🔁 重试逻辑
+快速入门
 
-- 对 **HTTP 5xx** 和 **401/403** 响应进行重试，最多重试 `HTTP_RETRY_CNT` 次。
+### 运行预编译二进制文件
+1. 下载适用于您平台的[最新版本](https://github.com/0x131315/hikvision-backup/releases/latest)。
 
-#### 📷 视频扫描
-
-- 扫描摄像头，查找最近 `SCAN_LAST_DAYS` 天内的视频
-
-- 对于每个视频：
-
-- 使用**开始日期**作为文件名
-
-- 使用**视频大小**作为预期文件大小
-
-#### 📁 本地文件检查
-
-- 对 `DOWNLOAD_DIR` 中的每个视频文件：
-
-- **检查文件是否存在**
-
-- **验证文件大小**
-
-- 如果文件太小（不完整或已损坏）：
-
-- 删除本地文件
-
-- 重新下载视频
-
-#### ⬇️ 视频下载
-
-- 下载所有新增或缺失的视频
-
-- 确保文件完整且大小符合预期。
-
-
----
-
-
-### ⚙️ 配置
-
-所有参数均可通过项目根目录下的 `.env` 文件或控制台中的环境变量进行设置。环境变量的优先级更高。
-
-#### 必需变量
-
-必需变量没有默认值，必须设置。
-
-- **`DOWNLOAD_DIR`** — 下载的视频将保存到此路径
-
-_示例_: `/home/user/camera_videos`
-
-- **`CAM_HOST`** — 摄像头主机名或 IP 地址
-
-_示例_: `192.168.1.10`
-
-- **`CAM_USER`** — 用于相机身份验证的用户名
-
-_示例_: `admin`
-
-#### 可选变量
-
-- **`CAM_PASS`** — 摄像头认证密码
-
-_(默认值：空；如果摄像头允许，则可以为空)_
-
-- **`SCAN_LAST_DAYS`** — 扫描视频时要回溯的天数
-
-_示例_：`3`（扫描最近 3 天的视频）
-
-_(默认值：0；0 表示无限制)_
-
-- **`SCAN_FROM_LOCAL_LATEST`** — 如果大于 `0`，则首先扫描下载目录，根据文件名中的日期查找最新的本地文件，减去该日期数，然后使用该值与 `SCAN_LAST_DAYS` 之间较小的窗口。
-
-_示例_：`2`
-
-_(默认值：0；0 表示禁用；负值视为绝对值)_
-
-- **`HTTP_RETRY_CNT`** — 发送 HTTP 请求出错时重试的次数
-
-_示例_：`3`（重试 3 次）
-
-_(默认值：3)_
-
-- **`HTTP_TIMEOUT`** — 等待 HTTP 响应的超时时间以及下载视频文件的最大时间
-
-_示例_：`3`（等待 3 秒）
-
-_(默认值：120，关闭限制：0)_
-
-- **`NO_PROXY`** — 设置为 `true` 可忽略 `http_proxy/https_proxy` 环境变量（例如，用于直接访问本地 IP 或调试）
-
-_值_: `true` / `false`
-
-_(默认值：false)_
-
-
-#### 命令行选项
-
-- 版本
+2. 解压压缩包并打开文件夹：
 
 ```bash
 
-./hikvision-backup -v
+cd <项目文件夹>
 
 ```
-
-- 调试信息
-
-```bash
-
-./hikvision-backup -vv
-
-```
-- HTTP 流
-
-```bash
-
-./hikvision-backup -vvv
-
-```
-
----
-
-
-### ▶️ 使用方法
-
-1. 下载适用于您机器的[最新版本](https://github.com/0x131315/hikvision-backup/releases/latest)
-
-2. 将压缩包解压到任意目录，例如 `hidownload`
-
-3. 进入该目录：
-
-```bash
-
-cd hidownload
-
-```
-
-4. 复制示例配置：
+3. 创建配置文件：
 
 ```bash
 
 cp .env.dist .env
 
 ```
-
-5. 编辑 `.env` 文件，添加您的摄像头设置
-
-6. 运行程序：
+4. 编辑 `.env` 文件，然后运行：
 
 ```bash
 
@@ -175,71 +47,96 @@ cp .env.dist .env
 
 ```
 
-#### ✅ 就这样！
+### 典型自动化操作
 
-简单易用的“设置后即可忘记”工具——非常适合通过 cron、systemd 或任何任务调度程序运行。
+您可以通过 `cron`、`systemd` 或其他调度程序运行此工具。
 
-### 🛠️ 如何建造
+＃＃ 配置
 
-1. 如果尚未安装 Go，请先安装（https://go.dev/doc/install）
+该应用会从 `.env` 文件和环境变量中读取设置。
 
-2. 创建工作目录：
+环境变量的优先级高于 `.env` 文件。
 
-`bash
+| 多变的 | 必需的 | 默认 | 例子 | 描述 |
+|---|---|---|---|---|
+| `DOWNLOAD_DIR` | Yes | - | `/home/user/camera_videos` | 下载视频的本地文件夹 |
+| `CAM_HOST` | Yes | - | `192.168.1.10`，`https://cam.local:8443` | 摄像头主机或完整 URL。如果未设置协议，则使用 `https://`。 |
+| `CAM_USER` | Yes | - | `admin` | 相机用户名 |
+| `CAM_PASS` | No | empty | `secret` | 相机密码 |
+| `CAM_INSECURE_SKIP_VERIFY` | No | `false` | `true` | 跳过 TLS 证书检查。仅在受信任的网络中使用。 |
+| `SCAN_LAST_DAYS` | No | `0` | `3` | 仅扫描最近 N 天的视频。`0` 表示无限制。 |
+| `SCAN_FROM_LOCAL_LATEST` | No | `0` | `2` | 查找该日期后 N 天内的最新本地视频和扫描信息 |
+| `HTTP_RETRY_CNT` | No | `3` | `5` | 请求错误（`5xx`、`401`、`403`）的重试次数 |
+| `HTTP_TIMEOUT` | No | `120` | `30` | HTTP 超时时间（秒）。`0` 表示无超时限制。 |
+| `NO_PROXY` | No | `false` | `true` | 忽略环境变量中的代理设置 |
 
-mkdir hidownload
+## CLI 参考
 
-`bash
+| 选项 | 日志级别 | 用例 |
+|---|---|---|
+| （无标志） | Info | 日常运行 |
+| `--verbose`，`-vv` | Debug | 调试应用程序行为 |
+| `--verbose-http`，`-vvv` | 调试 + HTTP 跟踪 | 调试相机 API 请求 |
+| `-v`，`--version` | 不跑 | 显示版本信息并退出 |
 
-3. 克隆仓库：
+使用模式：
 
-`bash
+```bash
 
-git clone https://github.com/0x131315/hikvision-backup.git hidownload
+./hikvision-backup
 
-`bash
+./hikvision-backup --verbose
 
-4. 进入项目目录：
+./hikvision-backup --verbose-http
 
-`bash
+./hikvision-backup --version
 
-cd hidownload
+```
 
-`bash
+工作原理
 
-5. 构建项目：
+1. 从摄像头 API (ISAPI) 请求指定时间范围内的文件列表。
 
-`bash
+2. 对于每个视频，使用开始时间作为文件名。
+
+3. 使用摄像头文件大小作为预期大小。
+
+4. 检查文件是否存在于 `DOWNLOAD_DIR` 目录中。
+
+5. 如果文件不存在，则下载它。
+
+6. 如果文件太小，则删除它并重新下载。
+
+7. 重试失败的 HTTP 请求，最多重试 `HTTP_RETRY_CNT` 次。
+
+8. 下载完成后，比较文件大小并删除损坏的文件。
+
+## 从源代码构建
+
+1. 安装 Go 语言（https://go.dev/doc/install）。
+
+2. 克隆项目并构建：
+
+```bash
+
+git clone https://github.com/0x131315/hikvision-backup.git <项目文件夹>
+
+cd <项目文件夹>
 
 make build
 
-`bash
+```
+3. 创建配置文件并运行：
 
-6. 复制示例配置：
-
-`bash
+```bash
 
 cp .env.dist .env
 
-`bash
-
-7. 使用您的摄像头设置编辑 `.env` 文件：
-
-`bash
-
-nano .env
-
-`bash
-
-8. 运行程序：
-
-`bash
-
 ./hikvision-backup
 
-`bash
+```
 
+发布流程
 
-### 🧾 发布流程
+请参阅[RELEASE.md](RELEASE.md)了解发布步骤和标签规则。
 
-请参阅 `RELEASE.md` 文件，了解发布工作流程和标签规则。
