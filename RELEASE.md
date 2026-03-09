@@ -55,7 +55,14 @@ This runs:
 
 ## Translation Automation
 
-Translations are managed via `tools/i18n` and updated manually via `make i18n-sync`.
+Translations are managed via the nested module `tools/readme-i18n-sync` and controlled via Make targets.
+
+Useful commands:
+- `make i18n-check` — validate translations without updating files.
+- `make i18n-update` — update translated files from `README.md`.
+- `make i18n-sync` — update translations and auto-commit translation changes.
+- `make i18n-tool-test` — run tests for `tools/readme-i18n-sync`.
+- `make i18n-publish` — publish the nested module subtree to the standalone `readme-i18n-sync` repository.
 
 Environment variables:
 - **`DEEPL_API_KEY`** — DeepL API key (preferred).
