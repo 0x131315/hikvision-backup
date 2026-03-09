@@ -84,14 +84,14 @@ func NewHttpClient(ctx context.Context, conf config.Config) *Client {
 
 	client := resty.New()
 	client.SetRetryWaitTime(500 * time.Millisecond)
-	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: conf.InsecureTLS})
 
 	client.SetAllowGetMethodPayload(true)
 	client.SetHeader("Accept", "application/xml")
 	client.SetHeader("Content-Type", "application/xml")
 
 	client.SetRetryCount(conf.RetryCnt)
-	client.SetBaseURL("http://" + conf.Host)
+	client.SetBaseURL(conf.BaseURL)
 	client.SetTimeout(time.Duration(conf.HttpTimeout) * time.Second)
 
 	if conf.LogLvl == slog.LevelDebug {

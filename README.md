@@ -54,8 +54,8 @@ Required vars have no default and must be set.
 - **`DOWNLOAD_DIR`** — Path where downloaded videos will be saved  
   _Example_: `/home/user/camera_videos`
 
-- **`CAM_HOST`** — Camera hostname or IP address  
-  _Example_: `192.168.1.10`
+- **`CAM_HOST`** — Camera host or full base URL  
+  _Examples_: `192.168.1.10` (uses `https://` by default), `http://192.168.1.10`, `https://cam.local:8443`
 
 - **`CAM_USER`** — Username for camera authentication  
   _Example_: `admin`
@@ -64,6 +64,10 @@ Required vars have no default and must be set.
 
 - **`CAM_PASS`** — Password for camera authentication
   _(default: empty; can be empty if the camera allows it)_
+
+- **`CAM_INSECURE_SKIP_VERIFY`** — Skip TLS certificate verification (`https` only; unsafe, use only for self-signed certificates in trusted networks)
+  _Values_: `true` / `false`
+  _(default: false)_
 
 - **`SCAN_LAST_DAYS`** — Number of days to look back when scanning for videos  
   _Example_: `3` (scans the last 3 days)

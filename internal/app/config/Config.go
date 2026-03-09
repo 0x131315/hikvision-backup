@@ -2,17 +2,21 @@ package config
 
 import (
 	"log/slog"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 
 	_ "github.com/joho/godotenv/autoload"
 )
 
 type Config struct {
 	Host         string
+	BaseURL      string
 	User         string
 	Pass         string
 	NoProxy      bool
+	InsecureTLS  bool
 	DownloadDir  string
 	ScanLastDays int
 	ScanLocal    int
@@ -41,6 +45,7 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 		slog.Error("CAM_HOST environment variable not set")
 		os.Exit(1)
 	}
+	baseURL := buildBaseURL(host)
 
 	user := os.Getenv("CAM_USER")
 	if user == "" {
@@ -53,6 +58,15 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 	noProxy := os.Getenv("NO_PROXY")
 	if noProxy == "" {
 		noProxy = "false"
+	}
+	insecureTLS := os.Getenv("CAM_INSECURE_SKIP_VERIFY")
+	if insecureTLS == "" {
+		insecureTLS = "false"
+	}
+	insecureSkipVerify, err := strconv.ParseBool(insecureTLS)
+	if err != nil {
+		slog.Error("CAM_INSECURE_SKIP_VERIFY environment variable must be true/false")
+		os.Exit(1)
 	}
 
 	downloadDir := os.Getenv("DOWNLOAD_DIR")
@@ -124,9 +138,11 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 
 	conf := Config{
 		Host:         host,
+		BaseURL:      baseURL,
 		User:         user,
 		Pass:         pass,
 		NoProxy:      noProxy == "true",
+		InsecureTLS:  insecureSkipVerify,
 		DownloadDir:  downloadDir,
 		ScanLastDays: lastDays,
 		ScanLocal:    scanLocalDays,
@@ -137,4 +153,18 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 	}
 
 	return conf
+}
+
+func buildBaseURL(host string) string {
+	host = strings.TrimSpace(host)
+	if strings.HasPrefix(host, "http://") || strings.HasPrefix(host, "https://") {
+		u, err := url.Parse(host)
+		if err != nil || u.Scheme == "" || u.Host == "" {
+			slog.Error("CAM_HOST must be a valid host or URL", "value", host)
+			os.Exit(1)
+		}
+		return strings.TrimRight(host, "/")
+	}
+
+	return "https://" + host
 }
