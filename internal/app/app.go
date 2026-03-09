@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -30,13 +31,12 @@ type App struct {
 	conf config.Config
 }
 
-func NewApp(ctx context.Context, logLvl slog.Level, logHttp bool) *App {
+func NewApp(ctx context.Context, logLvl slog.Level, logHttp bool) (*App, error) {
 	conf, err := config.Init(logLvl, logHttp)
 	if err != nil {
-		slog.Error("failed to initialize config", "error", err)
-		return nil
+		return nil, errors.Join(errors.New("failed to initialize config"), err)
 	}
-	return &App{ctx: ctx, api: api.NewApiClient(ctx, conf), conf: conf}
+	return &App{ctx: ctx, api: api.NewApiClient(ctx, conf), conf: conf}, nil
 }
 
 func (app *App) Conf() config.Config {

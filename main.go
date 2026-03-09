@@ -40,8 +40,9 @@ func main() {
 	}
 	initLogger(logLvl)
 
-	App := app.NewApp(ctx, logLvl, logHttp)
-	if App == nil {
+	App, err := app.NewApp(ctx, logLvl, logHttp)
+	if err != nil {
+		slog.Error("failed to initialize app", "error", err)
 		os.Exit(1)
 	}
 	if err := fs.Init(App.Conf().DownloadDir); err != nil {
