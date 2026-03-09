@@ -91,3 +91,18 @@ func TestTranslateTableBlockWithTranslator(t *testing.T) {
 		t.Fatalf("table separator should be preserved: %q", out)
 	}
 }
+
+func TestTranslateTableBlockWrapperUsesDefaultTranslator(t *testing.T) {
+	prev := defaultTranslator
+	defaultTranslator = &stubTranslator{prefix: "ru:"}
+	t.Cleanup(func() { defaultTranslator = prev })
+
+	block := "| Key | Description |\n|---|---|\n| A | Simple text |"
+	out, err := translateTableBlock(language{Code: "ru"}, block, false)
+	if err != nil {
+		t.Fatalf("translateTableBlock: %v", err)
+	}
+	if !strings.Contains(out, "ru:Simple text") {
+		t.Fatalf("expected translated cell in wrapper output: %q", out)
+	}
+}
