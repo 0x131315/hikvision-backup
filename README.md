@@ -2,102 +2,66 @@
 
 Languages: English | [Русский](i18n/README.ru.md) | [中文](i18n/README.zh.md)
 
-Simple tool to back up videos from Hikvision cameras.  
+Simple tool to back up videos from Hikvision cameras.
 Created as an MVP pet project for private use.
 
-### 🚀 Easy to Use — Set and Forget
+## Contents
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [CLI Reference](#cli-reference)
+- [How It Works](#how-it-works)
+- [Build from Source](#build-from-source)
+- [Release Process](#release-process)
 
-Just configure the environment variables, run the binary — and you're done.  
-It handles retries, verifies file integrity, and keeps your archive up to date automatically.
+## Quick Start
 
-Ideal for automation: run it as a cron job, systemd service, or background task.
+### Run Prebuilt Binary
+1. Download the [latest release](https://github.com/0x131315/hikvision-backup/releases/latest) for your platform.
+2. Unpack it and enter the directory:
+```bash
+cd hidownload
+```
+3. Create config file:
+```bash
+cp .env.dist .env
+```
+4. Edit `.env` and run:
+```bash
+./hikvision-backup
+```
 
----
+### Typical Automation
+Use it from `cron`, `systemd`, or any task scheduler as a "set and forget" job.
 
-### How It Works
+## Configuration
 
-The script performs the following steps to ensure all camera videos are downloaded reliably:
+All parameters are read from `.env` in project root and/or environment variables.
+Environment variables override `.env`.
 
-#### 🔁 Retry Logic
-- Retries on **HTTP 5xx** and **401/403** responses up to `HTTP_RETRY_CNT` times
+| Variable | Required | Default | Example | Description |
+|---|---|---|---|---|
+| `DOWNLOAD_DIR` | Yes | - | `/home/user/camera_videos` | Directory where downloaded videos are stored |
+| `CAM_HOST` | Yes | - | `192.168.1.10`, `https://cam.local:8443` | Camera host or full base URL (if scheme omitted, `https://` is used) |
+| `CAM_USER` | Yes | - | `admin` | Camera username |
+| `CAM_PASS` | No | empty | `secret` | Camera password |
+| `CAM_INSECURE_SKIP_VERIFY` | No | `false` | `true` | Skip TLS certificate verification (unsafe; for trusted self-signed setups only) |
+| `SCAN_LAST_DAYS` | No | `0` | `3` | Scan only last N days (`0` means no limit) |
+| `SCAN_FROM_LOCAL_LATEST` | No | `0` | `2` | Derive scan window from newest local file and backfill N days |
+| `HTTP_RETRY_CNT` | No | `3` | `5` | Retries for request errors (`5xx`, `401`, `403`) |
+| `HTTP_TIMEOUT` | No | `120` | `30` | HTTP timeout in seconds (`0` means no timeout limit) |
+| `NO_PROXY` | No | `false` | `true` | Ignore proxy environment variables |
 
-#### 📷 Video Scanning
-- Scans the camera for videos from the last `SCAN_LAST_DAYS` days
-- For each video:
-    - Uses the **start date** as the filename
-    - Uses the **video size** as the expected file size
+## CLI Reference
 
-#### 📁 Local File Check
-- For each video file in `DOWNLOAD_DIR`:
-    - **Check if the file exists**
-    - **Verify the file size**
-        - If the file is too small (incomplete or corrupted):
-            - Delete the local file
-            - Re-download the video
-
-#### ⬇️ Video Download
-- Downloads all new or missing videos
-- Ensures files are complete and match the expected size
-
-
----
-
-
-### ⚙️ Config
-
-All parameters are set via a `.env` file in the project root or via env-variables in console. Env-variables have a higher priority.
-
-#### Required Variables
-
-Required vars have no default and must be set.
-
-- **`DOWNLOAD_DIR`** — Path where downloaded videos will be saved  
-  _Example_: `/home/user/camera_videos`
-
-- **`CAM_HOST`** — Camera host or full base URL  
-  _Examples_: `192.168.1.10` (uses `https://` by default), `http://192.168.1.10`, `https://cam.local:8443`
-
-- **`CAM_USER`** — Username for camera authentication  
-  _Example_: `admin`
-
-#### Optional Variables
-
-- **`CAM_PASS`** — Password for camera authentication
-  _(default: empty; can be empty if the camera allows it)_
-
-- **`CAM_INSECURE_SKIP_VERIFY`** — Skip TLS certificate verification (`https` only; unsafe, use only for self-signed certificates in trusted networks)
-  _Values_: `true` / `false`
-  _(default: false)_
-
-- **`SCAN_LAST_DAYS`** — Number of days to look back when scanning for videos  
-  _Example_: `3` (scans the last 3 days)
-  _(default: 0; 0 means no limit)_
-
-- **`SCAN_FROM_LOCAL_LATEST`** — If greater than `0`, scan the download directory first, find the newest local file by date in its name, subtract this number of days, and use the smaller window between that value and `SCAN_LAST_DAYS`  
-  _Example_: `2`
-  _(default: 0; 0 means disabled; negative values are treated as absolute)_
-
-- **`HTTP_RETRY_CNT`** — Number of retry send http request on error  
-  _Example_: `3` (retry 3 times)
-  _(default: 3)_
-
-- **`HTTP_TIMEOUT`** — Timeout for wait http response and max time for download video file  
-  _Example_: `3` (wait 3 seconds)
-  _(default: 120, off limit: 0)_
-
-- **`NO_PROXY`** — Set to `true` to ignore the `http_proxy/https_proxy` environment variable (e.g. for direct access to local IPs or debug)  
-  _Values_: `true` / `false`
-  _(default: false)_
-
-
-#### CLI Reference
-- **`-v, --version`** — Print description, feature list, and build version info; then exit
-- **`--verbose`** — Enable debug logs
-- **`--verbose-http`** — Enable debug logs and HTTP trace logs
+| Flag | Description |
+|---|---|
+| `-v`, `--version` | Print description, feature list, and build version info |
+| `--verbose` | Enable debug logs |
+| `--verbose-http` | Enable debug logs and HTTP trace logs |
 
 Legacy compatibility:
-- **`-vv`** is mapped to **`--verbose`**
-- **`-vvv`** is mapped to **`--verbose-http`**
+- `-vv` maps to `--verbose`
+- `-vvv` maps to `--verbose-http`
 
 Examples:
 ```bash
@@ -108,67 +72,30 @@ Examples:
 ./hikvision-backup -vvv
 ```
 
----
+## How It Works
 
+1. Request file list from camera API (ISAPI) for the configured time range.
+2. For each remote file, use start timestamp as filename and remote size as expected size.
+3. Check local file in `DOWNLOAD_DIR`.
+4. If local file is missing or smaller than expected, download it.
+5. Retry on transient HTTP errors according to `HTTP_RETRY_CNT`.
+6. Validate resulting file size; remove invalid files.
 
-### ▶️ How to Use
+## Build from Source
 
-1. Download [latest](https://github.com/0x131315/hikvision-backup/releases/latest) version for your machine
-2. Unpack the archive on any directory, e.g. `hidownload`
-3. Enter the directory:
+1. [Install Go](https://go.dev/doc/install).
+2. Clone the project and build:
 ```bash
-   cd hidownload
+git clone https://github.com/0x131315/hikvision-backup.git hidownload
+cd hidownload
+make build
 ```
-4. Copy the example config:
+3. Configure and run:
 ```bash
-   cp .env.dist .env
-```
-5. Edit the `.env` file with your camera settings
-6. Run the program:
-```bash
-   ./hikvision-backup
-```
-
-#### ✅ That's it!
-
-Simple "set and forget" tool — ideal for running via cron, systemd, or any task scheduler.
-
-
----
-
-
-### 🛠️ Build from Source
-
-1. [Install Go](https://go.dev/doc/install) if not already installed
-2. Create a working directory:
-```bash
-   mkdir hidownload
-```
-3. Clone the repository:
-```bash
-   git clone https://github.com/0x131315/hikvision-backup.git hidownload
-```
-4. Enter the project directory:
-```bash
-   cd hidownload
-```
-5. Build the project:
-```bash
-   make build
-```
-6. Copy the example config:
-```bash
-   cp .env.dist .env
-```
-7. Edit `.env` with your camera settings:
-```bash
-   nano .env
-```
-8. Run the program:
-```bash
-   ./hikvision-backup
+cp .env.dist .env
+./hikvision-backup
 ```
 
-### 🧾 Release Process
+## Release Process
 
-See `RELEASE.md` for the release workflow and tagging rules.
+See `RELEASE.md` for release workflow and tagging rules.
