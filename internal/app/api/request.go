@@ -2,8 +2,6 @@ package api
 
 import (
 	"encoding/xml"
-	"log/slog"
-	"os"
 	"time"
 )
 
@@ -25,7 +23,7 @@ type DownloadRequest struct {
 	PlaybackURI string   `xml:"playbackURI"`
 }
 
-func buildSearchRequest(offset, limit, lastDays int, timestart, timeend *time.Time) string {
+func buildSearchRequest(offset, limit, lastDays int, timestart, timeend *time.Time) (string, error) {
 	if timestart == nil {
 		old := time.Now().AddDate(0, 0, -1*lastDays)
 		timestart = &old
@@ -50,7 +48,7 @@ func buildSearchRequest(offset, limit, lastDays int, timestart, timeend *time.Ti
 	return buildXml(req)
 }
 
-func buildDownloadRequest(file Video) string {
+func buildDownloadRequest(file Video) (string, error) {
 	req := &DownloadRequest{
 		PlaybackURI: file.Url,
 	}
@@ -58,13 +56,12 @@ func buildDownloadRequest(file Video) string {
 	return buildXml(req)
 }
 
-func buildXml[T DownloadRequest | CMSearchDescription](req *T) string {
+func buildXml[T DownloadRequest | CMSearchDescription](req *T) (string, error) {
 	str, err := xml.MarshalIndent(req, "", "  ")
 	if err != nil {
-		slog.Error("xml.MarshalIndent() failed", "error", err)
-		os.Exit(1)
+		return "", err
 	}
 	body := string(str)
 
-	return body
+	return body, nil
 }

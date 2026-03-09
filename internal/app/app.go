@@ -31,7 +31,11 @@ type App struct {
 }
 
 func NewApp(ctx context.Context, logLvl slog.Level, logHttp bool) *App {
-	conf := config.Init(logLvl, logHttp)
+	conf, err := config.Init(logLvl, logHttp)
+	if err != nil {
+		slog.Error("failed to initialize config", "error", err)
+		return nil
+	}
 	return &App{ctx: ctx, api: api.NewApiClient(ctx, conf), conf: conf}
 }
 
@@ -68,7 +72,7 @@ func (app *App) DownloadVideos() {
 	wg.Wait()
 }
 func (app *App) saveVideo(video api.Video) {
-	file := buildFile(video)
+	file := buildFile(video, app.conf.DownloadDir)
 	slog.Info("processing file", "file", file.name, "size", util.FormatFileSize(file.size))
 
 	if fs.IsFileExist(file.path) {
@@ -92,7 +96,7 @@ func (app *App) saveVideo(video api.Video) {
 		outFile, err := os.Create(file.path)
 		if err != nil {
 			slog.Error("Failed to create file", "path", file.path, "err", err)
-			os.Exit(1)
+			return
 		}
 
 		slog.Debug("start download", "file", file.name)
@@ -164,11 +168,11 @@ func (app *App) saveVideo(video api.Video) {
 	slog.Debug("complete")
 }
 
-func buildFile(video api.Video) File {
+func buildFile(video api.Video, downloadDir string) File {
 	filename := video.Time.Format("2006-01-02T15-04-05") + ".mp4"
 	return File{
 		name: filename,
-		path: filepath.Join(config.Get().DownloadDir, filename),
+		path: filepath.Join(downloadDir, filename),
 		size: video.Size,
 	}
 }

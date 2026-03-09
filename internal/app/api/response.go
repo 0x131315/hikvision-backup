@@ -2,9 +2,7 @@ package api
 
 import (
 	"encoding/xml"
-	"log/slog"
 	"net/url"
-	"os"
 	"strconv"
 	"time"
 )
@@ -43,39 +41,34 @@ type MetadataMatches struct {
 	MetadataDescriptor string `xml:"metadataDescriptor"`
 }
 
-func parseResponse(data string) *CMSearchResult {
+func parseResponse(data string) (*CMSearchResult, error) {
 	var result CMSearchResult
 	err := xml.Unmarshal([]byte(data), &result)
 	if err != nil {
-		slog.Error("Failed to parse XML data", "error", err)
-		os.Exit(1)
+		return nil, err
 	}
 
-	return &result
+	return &result, nil
 }
 
-func buildVideo(item SearchMatchItem) Video {
+func buildVideo(item SearchMatchItem) (Video, error) {
 	u, err := url.Parse(item.MediaSegment.PlaybackURI)
 	if err != nil {
-		slog.Error("Failed to parse url", "url", item.MediaSegment.PlaybackURI, "error", err)
-		os.Exit(1)
+		return Video{}, err
 	}
 	sizeStr := u.Query().Get("size")
 	size, err := strconv.Atoi(sizeStr)
 	if err != nil {
-		slog.Error("Failed to parse size", "size", sizeStr, "error", err)
-		os.Exit(1)
+		return Video{}, err
 	}
 
 	startTime, err := time.Parse(timeFormat, item.TimeSpan.StartTime)
 	if err != nil {
-		slog.Error("Failed to parse start time", "time", item.TimeSpan.StartTime, "error", err)
-		os.Exit(1)
+		return Video{}, err
 	}
 	endTime, err := time.Parse(timeFormat, item.TimeSpan.EndTime)
 	if err != nil {
-		slog.Error("Failed to parse end time", "time", item.TimeSpan.EndTime, "error", err)
-		os.Exit(1)
+		return Video{}, err
 	}
 	duration := endTime.Sub(startTime)
 
@@ -84,5 +77,5 @@ func buildVideo(item SearchMatchItem) Video {
 		Time:     startTime.Local(),
 		Duration: duration,
 		Size:     size,
-	}
+	}, nil
 }

@@ -49,7 +49,6 @@ func (api *ApiClient) GetVideoList() VideoList {
 	var timeend = timestart.AddDate(0, 1, 0)
 	var cnt int
 	var resp *CMSearchResult
-	var video Video
 	var offset int
 
 	for {
@@ -60,9 +59,21 @@ func (api *ApiClient) GetVideoList() VideoList {
 			default:
 			}
 
-			requestStr := buildSearchRequest(offset, limit, api.conf.ScanLastDays, &timestart, &timeend)
-			responseStr := api.httpClient.Send("POST", searchPath, requestStr).Value()
-			resp = parseResponse(responseStr)
+			requestStr, err := buildSearchRequest(offset, limit, api.conf.ScanLastDays, &timestart, &timeend)
+			if err != nil {
+				slog.Error("failed to build search request", "error", err)
+				return listVideos
+			}
+			response := api.httpClient.Send("POST", searchPath, requestStr)
+			if response == nil {
+				slog.Error("failed to request file list")
+				return listVideos
+			}
+			resp, err = parseResponse(response.Value())
+			if err != nil {
+				slog.Error("failed to parse search response", "error", err)
+				return listVideos
+			}
 			if offset == 0 {
 				slog.Info("found files", "count", resp.TotalMatches)
 			}
@@ -79,7 +90,11 @@ func (api *ApiClient) GetVideoList() VideoList {
 			)
 
 			for _, item := range resp.MatchList {
-				video = buildVideo(item)
+				video, err := buildVideo(item)
+				if err != nil {
+					slog.Warn("skip invalid video metadata", "error", err)
+					continue
+				}
 				listVideos[video.Time.Format(timeFormat)] = video
 			}
 
@@ -117,9 +132,21 @@ func (api *ApiClient) getVideoListUnbounded() VideoList {
 		default:
 		}
 
-		requestStr := buildSearchRequest(offset, limit, api.conf.ScanLastDays, &timestart, &timeend)
-		responseStr := api.httpClient.Send("POST", searchPath, requestStr).Value()
-		resp := parseResponse(responseStr)
+		requestStr, err := buildSearchRequest(offset, limit, api.conf.ScanLastDays, &timestart, &timeend)
+		if err != nil {
+			slog.Error("failed to build search request", "error", err)
+			return listVideos
+		}
+		response := api.httpClient.Send("POST", searchPath, requestStr)
+		if response == nil {
+			slog.Error("failed to request file list")
+			return listVideos
+		}
+		resp, err := parseResponse(response.Value())
+		if err != nil {
+			slog.Error("failed to parse search response", "error", err)
+			return listVideos
+		}
 		if offset == 0 {
 			slog.Info("found files", "count", resp.TotalMatches)
 		}
@@ -135,7 +162,11 @@ func (api *ApiClient) getVideoListUnbounded() VideoList {
 		)
 
 		for _, item := range resp.MatchList {
-			video := buildVideo(item)
+			video, err := buildVideo(item)
+			if err != nil {
+				slog.Warn("skip invalid video metadata", "error", err)
+				continue
+			}
 			listVideos[video.Time.Format(timeFormat)] = video
 		}
 
@@ -151,5 +182,11 @@ func (api *ApiClient) getVideoListUnbounded() VideoList {
 }
 
 func (api *ApiClient) GetVideo(video Video) *http.BinaryResponse {
-	return api.httpClient.GetStream("GET", downloadPath, buildDownloadRequest(video))
+	request, err := buildDownloadRequest(video)
+	if err != nil {
+		slog.Error("failed to build download request", "error", err)
+		return nil
+	}
+
+	return api.httpClient.GetStream("GET", downloadPath, request)
 }

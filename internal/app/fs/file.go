@@ -12,14 +12,13 @@ func Init(downloadDir string) {
 func RemoveFile(path string) {
 	slog.Debug("remove file", "path", path)
 	if !IsFileExist(path) {
-		slog.Error("file not exist", "path", path)
-		os.Exit(1)
+		slog.Debug("file not found, skip remove", "path", path)
+		return
 	}
 
 	err := os.Remove(path)
 	if err != nil {
 		slog.Error("Failed to remove file", "path", path, "error", err)
-		os.Exit(1)
 	}
 }
 
@@ -38,7 +37,7 @@ func IsFileExist(path string) bool {
 	}
 	if info.IsDir() {
 		slog.Error("The path is not a file", "path", path, "info", info)
-		os.Exit(1)
+		return false
 	}
 
 	return true
@@ -51,7 +50,7 @@ func isDirExist(path string) bool {
 	}
 	if !info.IsDir() {
 		slog.Error("The path is not a directory", "path", path, "info", info)
-		os.Exit(1)
+		return false
 	}
 
 	return true
@@ -64,7 +63,7 @@ func createDir(path string) {
 	err := os.MkdirAll(path, 0755)
 	if err != nil {
 		slog.Error("Failed to create a directory", "path", path, "error", err)
-		os.Exit(1)
+		return
 	}
 	slog.Debug("Directory created", "path", path)
 }
@@ -73,7 +72,6 @@ func getPathInfo(path string) (os.FileInfo, error) {
 	info, err := os.Stat(path)
 	if err != nil && !os.IsNotExist(err) {
 		slog.Error("Failed check path", "path", path, "error", err)
-		os.Exit(1)
 	}
 	return info, err
 }

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log/slog"
 	"net/url"
 	"os"
@@ -26,31 +27,23 @@ type Config struct {
 	LogHttp      bool
 }
 
-var config *Config
-
-func Init(logLvl slog.Level, logHttp bool) Config {
-	conf := buildConfig(logLvl, logHttp)
-	config = &conf
-
-	return conf
+func Init(logLvl slog.Level, logHttp bool) (Config, error) {
+	return buildConfig(logLvl, logHttp)
 }
 
-func Get() Config {
-	return *config
-}
-
-func buildConfig(logLvl slog.Level, logHttp bool) Config {
+func buildConfig(logLvl slog.Level, logHttp bool) (Config, error) {
 	host := os.Getenv("CAM_HOST")
 	if host == "" {
-		slog.Error("CAM_HOST environment variable not set")
-		os.Exit(1)
+		return Config{}, fmt.Errorf("CAM_HOST environment variable not set")
 	}
-	baseURL := buildBaseURL(host)
+	baseURL, err := buildBaseURL(host)
+	if err != nil {
+		return Config{}, err
+	}
 
 	user := os.Getenv("CAM_USER")
 	if user == "" {
-		slog.Error("CAM_USER environment variable not set")
-		os.Exit(1)
+		return Config{}, fmt.Errorf("CAM_USER environment variable not set")
 	}
 
 	pass := os.Getenv("CAM_PASS")
@@ -65,14 +58,12 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 	}
 	insecureSkipVerify, err := strconv.ParseBool(insecureTLS)
 	if err != nil {
-		slog.Error("CAM_INSECURE_SKIP_VERIFY environment variable must be true/false")
-		os.Exit(1)
+		return Config{}, fmt.Errorf("CAM_INSECURE_SKIP_VERIFY environment variable must be true/false")
 	}
 
 	downloadDir := os.Getenv("DOWNLOAD_DIR")
 	if downloadDir == "" {
-		slog.Error("DOWNLOAD_DIR environment variable not set")
-		os.Exit(1)
+		return Config{}, fmt.Errorf("DOWNLOAD_DIR environment variable not set")
 	}
 
 	scanLastDays := os.Getenv("SCAN_LAST_DAYS")
@@ -83,8 +74,7 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 
 	lastDays, err := strconv.Atoi(scanLastDays)
 	if err != nil {
-		slog.Error("SCAN_LAST_DAYS environment variable not numeric")
-		os.Exit(1)
+		return Config{}, fmt.Errorf("SCAN_LAST_DAYS environment variable not numeric")
 	}
 	if lastDays < 0 {
 		lastDays = lastDays * -1
@@ -96,8 +86,7 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 	}
 	scanLocalDays, err := strconv.Atoi(scanLocalStr)
 	if err != nil {
-		slog.Error("SCAN_FROM_LOCAL_LATEST environment variable not numeric")
-		os.Exit(1)
+		return Config{}, fmt.Errorf("SCAN_FROM_LOCAL_LATEST environment variable not numeric")
 	}
 	if scanLocalDays < 0 {
 		scanLocalDays = scanLocalDays * -1
@@ -113,12 +102,10 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 	}
 	retryCnt, err := strconv.Atoi(envRetryCnt)
 	if err != nil {
-		slog.Error("HTTP_RETRY_CNT environment variable not numeric")
-		os.Exit(1)
+		return Config{}, fmt.Errorf("HTTP_RETRY_CNT environment variable not numeric")
 	}
 	if retryCnt < 0 {
-		slog.Error("HTTP_RETRY_CNT environment variable smaller than 0")
-		os.Exit(1)
+		return Config{}, fmt.Errorf("HTTP_RETRY_CNT environment variable smaller than 0")
 	}
 
 	envHttpTimeout := os.Getenv("HTTP_TIMEOUT")
@@ -128,12 +115,10 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 	}
 	httpTimeout, err := strconv.Atoi(envHttpTimeout)
 	if err != nil {
-		slog.Error("HTTP_TIMEOUT environment variable not numeric")
-		os.Exit(1)
+		return Config{}, fmt.Errorf("HTTP_TIMEOUT environment variable not numeric")
 	}
 	if httpTimeout < 0 {
-		slog.Error("HTTP_TIMEOUT environment variable smaller than 0")
-		os.Exit(1)
+		return Config{}, fmt.Errorf("HTTP_TIMEOUT environment variable smaller than 0")
 	}
 
 	conf := Config{
@@ -152,19 +137,18 @@ func buildConfig(logLvl slog.Level, logHttp bool) Config {
 		LogHttp:      logHttp,
 	}
 
-	return conf
+	return conf, nil
 }
 
-func buildBaseURL(host string) string {
+func buildBaseURL(host string) (string, error) {
 	host = strings.TrimSpace(host)
 	if strings.HasPrefix(host, "http://") || strings.HasPrefix(host, "https://") {
 		u, err := url.Parse(host)
 		if err != nil || u.Scheme == "" || u.Host == "" {
-			slog.Error("CAM_HOST must be a valid host or URL", "value", host)
-			os.Exit(1)
+			return "", fmt.Errorf("CAM_HOST must be a valid host or URL")
 		}
-		return strings.TrimRight(host, "/")
+		return strings.TrimRight(host, "/"), nil
 	}
 
-	return "https://" + host
+	return "https://" + host, nil
 }

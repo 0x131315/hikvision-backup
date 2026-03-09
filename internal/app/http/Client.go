@@ -44,6 +44,9 @@ func (r *BinaryResponse) Stream() io.ReadCloser {
 
 func (c *Client) Send(method, uri, body string) *StringResponse {
 	resp := c.send(method, uri, body, false)
+	if resp == nil {
+		return nil
+	}
 
 	return &StringResponse{
 		Response: Response{
@@ -56,6 +59,9 @@ func (c *Client) Send(method, uri, body string) *StringResponse {
 
 func (c *Client) GetStream(method, uri, body string) *BinaryResponse {
 	resp := c.send(method, uri, body, true)
+	if resp == nil || resp.RawResponse == nil {
+		return nil
+	}
 
 	return &BinaryResponse{
 		Response: Response{
@@ -117,13 +123,13 @@ func (c *Client) send(method, uri, body string, noParse bool) *resty.Response {
 		"body", strings.Replace(strings.Replace(body, "\n", "", -1), " ", "", -1),
 	)
 
-	retryCnt := config.Get().RetryCnt
+	retryCnt := c.conf.RetryCnt
 	for {
 		req := c.client.R().SetBody(body).SetDoNotParseResponse(noParse)
 		resp, err := req.Execute(method, uri)
 		if err != nil {
 			slog.Error("Failed to send request", "error", err)
-			os.Exit(1)
+			return nil
 		}
 
 		slog.Debug("http response",
@@ -140,7 +146,10 @@ func (c *Client) send(method, uri, body string, noParse bool) *resty.Response {
 
 		if code != http.StatusOK {
 			slog.Error("http error", "code", code)
-			os.Exit(1)
+			if noParse && resp.RawResponse != nil && resp.RawResponse.Body != nil {
+				_ = resp.RawResponse.Body.Close()
+			}
+			return nil
 		}
 
 		return resp

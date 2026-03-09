@@ -41,6 +41,9 @@ func main() {
 	initLogger(logLvl)
 
 	App := app.NewApp(ctx, logLvl, logHttp)
+	if App == nil {
+		os.Exit(1)
+	}
 	fs.Init(App.Conf().DownloadDir)
 
 	App.DownloadVideos()
