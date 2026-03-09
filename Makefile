@@ -38,7 +38,7 @@ I18N_PUBLISH_REMOTE ?= readme-i18n-sync
 I18N_SUBTREE_PREFIX ?= tools/readme-i18n-sync
 I18N_SUBTREE_BRANCH ?= readme-i18n-sync-release
 I18N_MODULE_TAG ?=
-RELEASE_I18N_MODULE ?= 0
+RELEASE_I18N_MODULE ?= 1
 GOFMT_PATHS = -path ./vendor -o -path ./.git -o -path ./.cache -o -path ./bin
 
 LDFLAGS_STRING = -X 'main.version=${VERSION}' -X 'main.commit=${COMMIT}' -X 'main.buildDate=${DATE}'
