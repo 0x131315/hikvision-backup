@@ -87,6 +87,10 @@ func processLanguage(lang language, blocks, seps []string, sourceHash string, ch
 		tm.Blocks = make(map[string]string)
 	}
 
+	if idx := findLanguagesBlock(blocks); idx >= 0 {
+		tm.Blocks[hashString(blocks[idx])] = languageSwitcherBlock(lang.Code)
+	}
+
 	missingIdx, missingText := findMissing(blocks, tm)
 
 	if len(missingIdx) > 0 {
@@ -127,6 +131,26 @@ func processLanguage(lang language, blocks, seps []string, sourceHash string, ch
 	}
 
 	return nil
+}
+
+func findLanguagesBlock(blocks []string) int {
+	for i, block := range blocks {
+		if strings.HasPrefix(strings.TrimSpace(block), "Languages:") {
+			return i
+		}
+	}
+	return -1
+}
+
+func languageSwitcherBlock(langCode string) string {
+	switch langCode {
+	case "ru":
+		return "Languages: [English](../README.md) | Русский | [中文](README.zh.md)"
+	case "zh":
+		return "Languages: [English](../README.md) | [Русский](README.ru.md) | 中文"
+	default:
+		return "Languages: English | [Русский](i18n/README.ru.md) | [中文](i18n/README.zh.md)"
+	}
 }
 
 func splitBlocks(s string) ([]string, []string) {
