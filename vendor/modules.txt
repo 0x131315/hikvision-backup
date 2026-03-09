@@ -1,6 +1,3 @@
-# cloud.google.com/go/compute/metadata v0.3.0
-## explicit; go 1.19
-cloud.google.com/go/compute/metadata
 # github.com/go-resty/resty/v2 v2.17.2
 ## explicit; go 1.23.0
 github.com/go-resty/resty/v2
@@ -34,18 +31,6 @@ github.com/spf13/pflag
 # golang.org/x/net v0.51.0
 ## explicit; go 1.25.0
 golang.org/x/net/publicsuffix
-# golang.org/x/oauth2 v0.35.0
-## explicit; go 1.24.0
-golang.org/x/oauth2
-golang.org/x/oauth2/authhandler
-golang.org/x/oauth2/google
-golang.org/x/oauth2/google/externalaccount
-golang.org/x/oauth2/google/internal/externalaccountauthorizeduser
-golang.org/x/oauth2/google/internal/impersonate
-golang.org/x/oauth2/google/internal/stsexchange
-golang.org/x/oauth2/internal
-golang.org/x/oauth2/jws
-golang.org/x/oauth2/jwt
 # golang.org/x/sys v0.41.0
 ## explicit; go 1.24.0
 golang.org/x/sys/plan9
