@@ -92,6 +92,8 @@ endef
 
 define CHECK_PRE_RELEASE
 	@$(MAKE) fmt-check
+	@go test ./...
+	@$(MAKE) i18n-tool-test
 	@$(MAKE) i18n-check
 endef
 

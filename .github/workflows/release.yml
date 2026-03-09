@@ -30,6 +30,9 @@ jobs:
       - name: Run tests
         run: go test ./...
 
+      - name: Run i18n module tests
+        run: make i18n-tool-test
+
       - name: Check translations
         run: make i18n-check
 
