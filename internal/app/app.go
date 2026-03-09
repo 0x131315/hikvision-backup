@@ -93,19 +93,13 @@ func (app *App) saveVideo(video api.Video) {
 	var badCnt, streamSize int
 	retryCnt := app.conf.RetryCnt
 	for {
-		outFile, err := os.Create(file.path)
-		if err != nil {
-			slog.Error("Failed to create file", "path", file.path, "err", err)
-			return
-		}
-
 		slog.Debug("start download", "file", file.name)
 		videoResp = app.api.GetVideo(video)
 		if videoResp == nil {
 			slog.Debug("download failed", "file", file.name)
-			fs.RemoveFile(file.path)
 			return
 		}
+		streamReader := videoResp.Stream()
 		streamSize = videoResp.Size()
 		if streamSize <= 0 {
 			streamSize = file.size
@@ -116,15 +110,22 @@ func (app *App) saveVideo(video api.Video) {
 		}
 		if streamSize <= 0 {
 			slog.Debug("download failed: unknown file size", "file", file.name)
-			fs.RemoveFile(file.path)
+			_ = streamReader.Close()
+			return
+		}
+
+		outFile, err := os.Create(file.path)
+		if err != nil {
+			slog.Error("Failed to create file", "path", file.path, "err", err)
+			_ = streamReader.Close()
 			return
 		}
 
 		slog.Debug("writing start", "file", file.name, "expected size", util.FormatFileSize(streamSize))
-		stream := io.TeeReader(videoResp.Stream(), util.BuildProgressBar(streamSize, "b"))
+		stream := io.TeeReader(streamReader, util.BuildProgressBar(streamSize, "b"))
 		_, err = io.Copy(outFile, stream)
-		videoResp.Stream().Close()
-		outFile.Close()
+		_ = streamReader.Close()
+		_ = outFile.Close()
 
 		//success branch
 		if err == nil {
