@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/joho/godotenv/autoload"
 	"golang.org/x/oauth2/google"
 )
 
