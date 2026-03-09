@@ -139,6 +139,9 @@ func (c *Client) send(method, uri, body string, noParse bool) *resty.Response {
 
 		code := resp.StatusCode()
 		if (code >= 500 || code == http.StatusUnauthorized || code == http.StatusForbidden) && retryCnt > 0 {
+			if noParse && resp.RawResponse != nil && resp.RawResponse.Body != nil {
+				_ = resp.RawResponse.Body.Close()
+			}
 			slog.Debug("send retry request", "retryCnt", retryCnt, "code", code)
 			retryCnt--
 			continue
