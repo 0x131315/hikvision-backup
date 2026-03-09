@@ -90,25 +90,22 @@ Required vars have no default and must be set.
   _(default: false)_
 
 
-#### Command line options
-- version
-```bash
-   ./hikvision-backup -v
-```
+#### CLI Reference
+- **`-v, --version`** — Print description, feature list, and build version info; then exit
+- **`--verbose`** — Enable debug logs
+- **`--verbose-http`** — Enable debug logs and HTTP trace logs
 
-- debug info
-```bash
-   ./hikvision-backup -vv
-```
-- http stream
-```bash
-   ./hikvision-backup -vvv
-```
+Legacy compatibility:
+- **`-vv`** is mapped to **`--verbose`**
+- **`-vvv`** is mapped to **`--verbose-http`**
 
-Also supported:
+Examples:
 ```bash
-   ./hikvision-backup --verbose
-   ./hikvision-backup --verbose-http
+./hikvision-backup --version
+./hikvision-backup --verbose
+./hikvision-backup --verbose-http
+./hikvision-backup -vv
+./hikvision-backup -vvv
 ```
 
 ---
