@@ -25,6 +25,8 @@ func processLanguageWithTranslator(translator Translator, lang language, blocks,
 	if tm.Blocks == nil {
 		tm.Blocks = make(map[string]string)
 	}
+	originalBlocks := cloneStringMap(tm.Blocks)
+	originalSourceHash := tm.SourceHash
 
 	// Positional sync is only safe for bootstrap (empty TM).
 	// When source changes, syncing by index can mask missing translations.
@@ -55,16 +57,21 @@ func processLanguageWithTranslator(translator Translator, lang language, blocks,
 		return nil
 	}
 
-	tm.SourceHash = sourceHash
-	tm.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
-
-	if err := writeTM(tmPath, tm); err != nil {
-		return err
-	}
-
 	out := buildTranslated(blocks, seps, tm)
+	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
+		return fmt.Errorf("mkdir %s: %w", filepath.Dir(outPath), err)
+	}
 	if err := os.WriteFile(outPath, []byte(out), 0o644); err != nil {
 		return fmt.Errorf("write %s: %w", outPath, err)
+	}
+
+	changed := !equalStringMaps(originalBlocks, tm.Blocks) || originalSourceHash != sourceHash
+	if changed {
+		tm.SourceHash = sourceHash
+		tm.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+		if err := writeTM(tmPath, tm); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -189,4 +196,25 @@ func syncFromTranslation(path string, blocks []string, tm tmFile) error {
 	}
 
 	return nil
+}
+
+func cloneStringMap(src map[string]string) map[string]string {
+	out := make(map[string]string, len(src))
+	for k, v := range src {
+		out[k] = v
+	}
+	return out
+}
+
+func equalStringMaps(a, b map[string]string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, av := range a {
+		bv, ok := b[k]
+		if !ok || bv != av {
+			return false
+		}
+	}
+	return true
 }
