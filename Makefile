@@ -35,7 +35,10 @@ I18N_SOURCE ?= ../../README.md
 I18N_OUT_DIR ?= ../../i18n
 I18N_TM_DIR ?=
 I18N_PUBLISH_REMOTE ?= readme-i18n-sync
-I18N_RUN_BASE = cd $(I18N_TOOL_DIR) && go run ./cmd/readme-i18n-sync --source $(I18N_SOURCE) --i18n-dir $(I18N_OUT_DIR) $(if $(I18N_TM_DIR),--tm-dir $(I18N_TM_DIR),)
+I18N_SUBTREE_PREFIX ?= tools/readme-i18n-sync
+I18N_SUBTREE_BRANCH ?= readme-i18n-sync-release
+I18N_MODULE_TAG ?=
+RELEASE_I18N_MODULE ?= 0
 GOFMT_PATHS = -path ./vendor -o -path ./.git -o -path ./.cache -o -path ./bin
 
 LDFLAGS_STRING = -X 'main.version=${VERSION}' -X 'main.commit=${COMMIT}' -X 'main.buildDate=${DATE}'
@@ -92,7 +95,14 @@ define CHECK_PRE_RELEASE
 	@$(MAKE) i18n-check
 endef
 
-.PHONY: build test fmt fmt-check i18n-tool-test i18n-update i18n-check i18n-sync i18n-publish prepare-release next-alpha next-beta next-patch next-minor next-major release
+define CHECK_RELEASE_READY
+	$(call CHECK_ON_RELEASE_BRANCH,release)
+	$(call CHECK_TAG_EXISTS,$(VERSION))
+	$(call CHECK_TAG_ON_HEAD,$(VERSION))
+	$(call CHECK_PRE_RELEASE)
+endef
+
+.PHONY: build test fmt fmt-check i18n-tool-test i18n-update i18n-check i18n-sync i18n-subtree-split i18n-publish i18n-module-release release-preflight release-i18n-module release-push prepare-release next-alpha next-beta next-patch next-minor next-major release
 # Build binary with version/commit/date baked via ldflags
 build:
 	@echo "==> Building ${APP_NAME}..."
@@ -121,22 +131,22 @@ fmt-check:
 # Update translations (requires DEEPL_API_KEY)
 i18n-update:
 	@echo "==> Updating translations..."
-	$(I18N_RUN_BASE) $(if $(I18N_FORCE),--force)
+	$(MAKE) -C $(I18N_TOOL_DIR) update SOURCE="$(I18N_SOURCE)" I18N_DIR="$(I18N_OUT_DIR)" TM_DIR="$(I18N_TM_DIR)" I18N_FORCE="$(I18N_FORCE)"
 
 # Check translations (no API calls)
 i18n-check:
 	@echo "==> Checking translations..."
-	$(I18N_RUN_BASE) --check
+	$(MAKE) -C $(I18N_TOOL_DIR) check SOURCE="$(I18N_SOURCE)" I18N_DIR="$(I18N_OUT_DIR)" TM_DIR="$(I18N_TM_DIR)"
 
 # Run tests for the standalone i18n module
 i18n-tool-test:
 	@echo "==> Testing readme-i18n-sync module..."
-	cd $(I18N_TOOL_DIR) && go test ./...
+	$(MAKE) -C $(I18N_TOOL_DIR) test
 
 # Update translations and commit changes (run before tagging)
 i18n-sync:
 	@echo "==> Updating translations and committing..."
-	$(I18N_RUN_BASE) $(if $(I18N_FORCE),--force)
+	$(MAKE) -C $(I18N_TOOL_DIR) sync SOURCE="$(I18N_SOURCE)" I18N_DIR="$(I18N_OUT_DIR)" TM_DIR="$(I18N_TM_DIR)" I18N_FORCE="$(I18N_FORCE)"
 	@$(MAKE) i18n-check
 	@if ! git diff --quiet; then \
 		git add i18n/README.*.md i18n/tm/README.*.json; \
@@ -149,6 +159,28 @@ i18n-sync:
 i18n-publish:
 	@echo "==> Publishing readme-i18n-sync to $(I18N_PUBLISH_REMOTE)..."
 	REPO_REMOTE=$(I18N_PUBLISH_REMOTE) $(I18N_TOOL_DIR)/scripts/publish-subtree.sh
+
+# Create/update local subtree split branch for the i18n module
+i18n-subtree-split:
+	@echo "==> Splitting subtree $(I18N_SUBTREE_PREFIX) into branch $(I18N_SUBTREE_BRANCH)..."
+	git subtree split --prefix=$(I18N_SUBTREE_PREFIX) -b $(I18N_SUBTREE_BRANCH)
+
+# Publish module and push explicit module tag to standalone repository
+# Usage: make i18n-module-release I18N_MODULE_TAG=readme-i18n-sync/v0.1.0
+i18n-module-release:
+	@split_sha="$$(git subtree split --prefix=$(I18N_SUBTREE_PREFIX))"; \
+	remote_sha="$$(git ls-remote $(I18N_PUBLISH_REMOTE) refs/heads/main | awk '{print $$1}')"; \
+	if [ -n "$$remote_sha" ] && [ "$$split_sha" = "$$remote_sha" ]; then \
+		echo "No module changes to release (local subtree $$split_sha == $(I18N_PUBLISH_REMOTE)/main)."; \
+		exit 0; \
+	fi; \
+	tag="$(I18N_MODULE_TAG)"; \
+	if [ -z "$$tag" ]; then \
+		tag="$$( $(MAKE) --no-print-directory -s -C $(I18N_TOOL_DIR) print-next-tag )"; \
+	fi; \
+	echo "==> Releasing i18n module tag $$tag to $(I18N_PUBLISH_REMOTE) (subtree $$split_sha)..."; \
+	$(MAKE) i18n-publish; \
+	$(MAKE) -C $(I18N_TOOL_DIR) release-tag TAG="$$tag" REMOTE="$(I18N_PUBLISH_REMOTE)"
 
 .PHONY: bump
 # Update deps + vendor + commit in one step
@@ -206,14 +238,25 @@ next-major:
 	git tag $(NEW_VERSION_MAJOR)
 
 # Release: push release branch and current tag
-release:
-	$(call CHECK_ON_RELEASE_BRANCH,release)
-	$(call CHECK_TAG_EXISTS,$(VERSION))
-	$(call CHECK_TAG_ON_HEAD,$(VERSION))
-	$(call CHECK_PRE_RELEASE)
+release-preflight:
+	$(call CHECK_RELEASE_READY)
+
+release-i18n-module:
+	@if [ "$(RELEASE_I18N_MODULE)" = "1" ]; then \
+		$(MAKE) i18n-module-release; \
+	else \
+		echo "==> Skipping i18n module release (RELEASE_I18N_MODULE=$(RELEASE_I18N_MODULE))"; \
+	fi
+
+release-push:
 	@echo "==> Releasing ${APP_NAME} version $(VERSION)..."
 	git push origin $(RELEASE_BRANCH)
 	git push origin $(VERSION)
+
+release:
+	@$(MAKE) release-preflight
+	@$(MAKE) release-i18n-module RELEASE_I18N_MODULE=$(RELEASE_I18N_MODULE)
+	@$(MAKE) release-push
 
 # Prepare for release (run on release branch before tagging)
 prepare-release:

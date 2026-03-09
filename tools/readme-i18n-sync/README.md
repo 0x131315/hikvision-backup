@@ -27,3 +27,17 @@ go run ./cmd/readme-i18n-sync --source ../../README.md --i18n-dir ../../i18n --f
 ```bash
 tools/readme-i18n-sync/scripts/publish-subtree.sh
 ```
+
+## Make Targets
+
+```bash
+make test
+make check SOURCE=../../README.md I18N_DIR=../../i18n
+make update SOURCE=../../README.md I18N_DIR=../../i18n
+make sync SOURCE=../../README.md I18N_DIR=../../i18n
+make print-next-tag
+make tag TAG=readme-i18n-sync/v0.1.0
+make release-tag TAG=readme-i18n-sync/v0.1.0 REMOTE=readme-i18n-sync
+```
+
+If `TAG` is not set, module make targets use automatic patch increment from the latest `readme-i18n-sync/v*` tag.
