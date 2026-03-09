@@ -141,6 +141,7 @@ i18n-check:
 # Run tests for the standalone i18n module
 i18n-tool-test:
 	@echo "==> Testing readme-i18n-sync module..."
+	$(MAKE) -C $(I18N_TOOL_DIR) vendor-check
 	$(MAKE) -C $(I18N_TOOL_DIR) test
 
 # Update translations and commit changes (run before tagging)
