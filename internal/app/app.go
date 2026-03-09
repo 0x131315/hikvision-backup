@@ -97,12 +97,24 @@ func (app *App) saveVideo(video api.Video) {
 
 		slog.Debug("start download", "file", file.name)
 		videoResp = app.api.GetVideo(video)
-		if videoResp == nil || videoResp.Size() == 0 {
+		if videoResp == nil {
 			slog.Debug("download failed", "file", file.name)
 			fs.RemoveFile(file.path)
 			return
 		}
 		streamSize = videoResp.Size()
+		if streamSize <= 0 {
+			streamSize = file.size
+			slog.Debug("response size is unavailable, using metadata size",
+				"file", file.name,
+				"metadata_size", util.FormatFileSize(streamSize),
+			)
+		}
+		if streamSize <= 0 {
+			slog.Debug("download failed: unknown file size", "file", file.name)
+			fs.RemoveFile(file.path)
+			return
+		}
 
 		slog.Debug("writing start", "file", file.name, "expected size", util.FormatFileSize(streamSize))
 		stream := io.TeeReader(videoResp.Stream(), util.BuildProgressBar(streamSize, "b"))
@@ -142,7 +154,7 @@ func (app *App) saveVideo(video api.Video) {
 	slog.Debug("validate")
 	if filesize != streamSize {
 		slog.Error("file size mismatch",
-			"loaded", fmt.Sprintf("%s/%s", util.FormatFileSize(filesize), util.FormatFileSize(videoResp.Size())),
+			"loaded", fmt.Sprintf("%s/%s", util.FormatFileSize(filesize), util.FormatFileSize(streamSize)),
 			"diff", util.FormatFileSize(int(math.Abs(float64(streamSize-filesize)))),
 		)
 		fs.RemoveFile(file.path)
