@@ -19,6 +19,7 @@ func main() {
 	//syscall handler
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer signal.Stop(sigChan)
 	go func() {
 		sig := <-sigChan
 		slog.Debug(fmt.Sprintf("system signal received: %v", sig))
