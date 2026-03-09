@@ -19,7 +19,7 @@ Created as an MVP pet project for private use.
 1. Download the [latest release](https://github.com/0x131315/hikvision-backup/releases/latest) for your platform.
 2. Unpack it and enter the directory:
 ```bash
-cd hidownload
+cd <project-folder>
 ```
 3. Create config file:
 ```bash
@@ -53,23 +53,19 @@ Environment variables override `.env`.
 
 ## CLI Reference
 
-| Flag | Description |
-|---|---|
-| `-v`, `--version` | Print description, feature list, and build version info |
-| `--verbose` | Enable debug logs |
-| `--verbose-http` | Enable debug logs and HTTP trace logs |
+| CLI Input | Output Level | Typical Use |
+|---|---|---|
+| _(no flags)_ | Info logs | Daily/cron execution |
+| `--verbose`, `-vv` | Debug logs | Troubleshooting app logic |
+| `--verbose-http`, `-vvv` | Debug logs + HTTP trace | API request/response diagnostics |
+| `-v`, `--version` | Prints version data and exits | Verify installed build |
 
-Legacy compatibility:
-- `-vv` maps to `--verbose`
-- `-vvv` maps to `--verbose-http`
-
-Examples:
+Usage patterns:
 ```bash
-./hikvision-backup --version
+./hikvision-backup
 ./hikvision-backup --verbose
 ./hikvision-backup --verbose-http
-./hikvision-backup -vv
-./hikvision-backup -vvv
+./hikvision-backup --version
 ```
 
 ## How It Works
@@ -86,8 +82,8 @@ Examples:
 1. [Install Go](https://go.dev/doc/install).
 2. Clone the project and build:
 ```bash
-git clone https://github.com/0x131315/hikvision-backup.git hidownload
-cd hidownload
+git clone https://github.com/0x131315/hikvision-backup.git <project-folder>
+cd <project-folder>
 make build
 ```
 3. Configure and run:
