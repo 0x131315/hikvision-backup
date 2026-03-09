@@ -25,6 +25,11 @@ type language struct {
 	GoogleLang string
 }
 
+type languageNavItem struct {
+	Code string
+	Name string
+}
+
 type tmFile struct {
 	SourceHash string            `json:"source_hash"`
 	UpdatedAt  string            `json:"updated_at"`
@@ -38,6 +43,11 @@ var (
 	langs      = []language{
 		{Code: "ru", TargetLang: "RU", GoogleLang: "ru"},
 		{Code: "zh", TargetLang: "ZH", GoogleLang: "zh-CN"},
+	}
+	languageNav = []languageNavItem{
+		{Code: "en", Name: "English"},
+		{Code: "ru", Name: "Русский"},
+		{Code: "zh", Name: "中文"},
 	}
 	sepRe = regexp.MustCompile(`\n{2,}`)
 )
@@ -143,14 +153,33 @@ func findLanguagesBlock(blocks []string) int {
 }
 
 func languageSwitcherBlock(langCode string) string {
-	switch langCode {
-	case "ru":
-		return "Languages: [English](../README.md) | Русский | [中文](README.zh.md)"
-	case "zh":
-		return "Languages: [English](../README.md) | [Русский](README.ru.md) | 中文"
-	default:
-		return "Languages: English | [Русский](i18n/README.ru.md) | [中文](i18n/README.zh.md)"
+	current := langCode
+	if current != "en" && current != "ru" && current != "zh" {
+		current = "en"
 	}
+
+	parts := make([]string, 0, len(languageNav))
+	for _, item := range languageNav {
+		if item.Code == current {
+			parts = append(parts, item.Name)
+			continue
+		}
+
+		link := languageDocLink(current, item.Code)
+		parts = append(parts, fmt.Sprintf("[%s](%s)", item.Name, link))
+	}
+
+	return "Languages: " + strings.Join(parts, " | ")
+}
+
+func languageDocLink(currentCode, targetCode string) string {
+	if currentCode == "en" {
+		return fmt.Sprintf("i18n/README.%s.md", targetCode)
+	}
+	if targetCode == "en" {
+		return "../README.md"
+	}
+	return fmt.Sprintf("README.%s.md", targetCode)
 }
 
 func splitBlocks(s string) ([]string, []string) {
