@@ -86,6 +86,10 @@ func NewHttpClient(ctx context.Context, conf config.Config) *Client {
 	if conf.NoProxy {
 		os.Unsetenv("http_proxy")
 		os.Unsetenv("https_proxy")
+		os.Unsetenv("no_proxy")
+		os.Unsetenv("HTTP_PROXY")
+		os.Unsetenv("HTTPS_PROXY")
+		os.Unsetenv("NO_PROXY")
 	}
 
 	client := resty.New()
