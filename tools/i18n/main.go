@@ -376,18 +376,6 @@ func shouldTranslateTableCell(cell string) bool {
 	if s == "" || s == "-" {
 		return false
 	}
-	if strings.Contains(s, "`") {
-		return false
-	}
-	if strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://") {
-		return false
-	}
-	if strings.HasPrefix(s, "/") || strings.Contains(s, "/") {
-		return false
-	}
-	if strings.HasPrefix(s, "--") || (strings.HasPrefix(s, "-") && len(s) <= 4) {
-		return false
-	}
 
 	l := strings.ToLower(strings.Trim(s, " ."))
 	switch l {
@@ -397,6 +385,14 @@ func shouldTranslateTableCell(cell string) bool {
 	if isNumericLike(l) {
 		return false
 	}
+
+	// Single-token cells are often technical values and should stay as-is.
+	// Multi-token cells are usually natural language descriptions and should be translated.
+	fields := strings.Fields(s)
+	if len(fields) == 1 && isLikelyTechnicalToken(fields[0]) {
+		return false
+	}
+
 	return true
 }
 
@@ -410,6 +406,26 @@ func isNumericLike(s string) bool {
 		}
 	}
 	return true
+}
+
+func isLikelyTechnicalToken(s string) bool {
+	token := strings.TrimSpace(s)
+	if token == "" {
+		return false
+	}
+	if strings.HasPrefix(token, "`") && strings.HasSuffix(token, "`") {
+		return true
+	}
+	if strings.HasPrefix(token, "http://") || strings.HasPrefix(token, "https://") {
+		return true
+	}
+	if strings.HasPrefix(token, "--") || (strings.HasPrefix(token, "-") && len(token) <= 4) {
+		return true
+	}
+	if strings.Contains(token, "/") || strings.Contains(token, "_") {
+		return true
+	}
+	return false
 }
 
 func splitBlocks(s string) ([]string, []string) {
