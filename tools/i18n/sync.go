@@ -10,6 +10,10 @@ import (
 )
 
 func processLanguage(lang language, blocks, seps []string, sourceHash string, checkOnly, initMode, force bool) error {
+	return processLanguageWithTranslator(defaultTranslator, lang, blocks, seps, sourceHash, checkOnly, initMode, force)
+}
+
+func processLanguageWithTranslator(translator Translator, lang language, blocks, seps []string, sourceHash string, checkOnly, initMode, force bool) error {
 	tmPath := filepath.Join(tmDir, fmt.Sprintf("README.%s.json", lang.Code))
 	outPath := filepath.Join(i18nDir, fmt.Sprintf("README.%s.md", lang.Code))
 
@@ -38,12 +42,12 @@ func processLanguage(lang language, blocks, seps []string, sourceHash string, ch
 		tm.Blocks[hashString(blocks[idx])] = languageSwitcherBlock(lang.Code)
 	}
 
-	if err := fillTableTranslations(lang, blocks, tm, initMode, force); err != nil {
+	if err := fillTableTranslationsWithTranslator(translator, lang, blocks, tm, initMode, force); err != nil {
 		return err
 	}
 
 	missingIdx, missingText := findMissing(blocks, tm)
-	if err := fillMissingTranslations(lang, blocks, missingIdx, missingText, tm, checkOnly, initMode); err != nil {
+	if err := fillMissingTranslationsWithTranslator(translator, lang, blocks, missingIdx, missingText, tm, checkOnly, initMode); err != nil {
 		return err
 	}
 
@@ -67,6 +71,10 @@ func processLanguage(lang language, blocks, seps []string, sourceHash string, ch
 }
 
 func fillTableTranslations(lang language, blocks []string, tm tmFile, initMode, force bool) error {
+	return fillTableTranslationsWithTranslator(defaultTranslator, lang, blocks, tm, initMode, force)
+}
+
+func fillTableTranslationsWithTranslator(translator Translator, lang language, blocks []string, tm tmFile, initMode, force bool) error {
 	for _, block := range blocks {
 		if !isMarkdownTableBlock(block) {
 			continue
@@ -77,7 +85,7 @@ func fillTableTranslations(lang language, blocks []string, tm tmFile, initMode, 
 			continue
 		}
 
-		translatedTable, err := translateTableBlock(lang, block, initMode)
+		translatedTable, err := translateTableBlockWithTranslator(translator, lang, block, initMode)
 		if err != nil {
 			return err
 		}
@@ -88,6 +96,10 @@ func fillTableTranslations(lang language, blocks []string, tm tmFile, initMode, 
 }
 
 func fillMissingTranslations(lang language, blocks []string, missingIdx []int, missingText []string, tm tmFile, checkOnly, initMode bool) error {
+	return fillMissingTranslationsWithTranslator(defaultTranslator, lang, blocks, missingIdx, missingText, tm, checkOnly, initMode)
+}
+
+func fillMissingTranslationsWithTranslator(translator Translator, lang language, blocks []string, missingIdx []int, missingText []string, tm tmFile, checkOnly, initMode bool) error {
 	if len(missingIdx) == 0 {
 		return nil
 	}
@@ -95,7 +107,7 @@ func fillMissingTranslations(lang language, blocks []string, missingIdx []int, m
 		return fmt.Errorf("missing translations for %s: %d block(s)", lang.Code, len(missingIdx))
 	}
 
-	translated, err := translateMissing(lang, missingText, initMode)
+	translated, err := translator.Translate(lang, missingText, initMode)
 	if err != nil {
 		if isQuotaExceeded(err) {
 			if len(missingIdx) > 0 {

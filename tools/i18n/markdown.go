@@ -100,6 +100,10 @@ func firstNonEmptyLine(lines []string, skip int) string {
 }
 
 func translateTableBlock(lang language, block string, initMode bool) (string, error) {
+	return translateTableBlockWithTranslator(defaultTranslator, lang, block, initMode)
+}
+
+func translateTableBlockWithTranslator(translator Translator, lang language, block string, initMode bool) (string, error) {
 	header, rows, ok := parseMarkdownTable(block)
 	if !ok {
 		return block, nil
@@ -125,7 +129,7 @@ func translateTableBlock(lang language, block string, initMode bool) (string, er
 		return buildMarkdownTable(header, rows), nil
 	}
 
-	translated, err := translateMissing(lang, texts, initMode)
+	translated, err := translator.Translate(lang, texts, initMode)
 	if err != nil {
 		return "", err
 	}

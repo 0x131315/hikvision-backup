@@ -5,7 +5,15 @@ import (
 	"os"
 )
 
-func translateMissing(lang language, texts []string, initMode bool) ([]string, error) {
+type Translator interface {
+	Translate(lang language, texts []string, initMode bool) ([]string, error)
+}
+
+type envTranslator struct{}
+
+var defaultTranslator Translator = envTranslator{}
+
+func (envTranslator) Translate(lang language, texts []string, initMode bool) ([]string, error) {
 	if len(texts) == 0 {
 		return nil, nil
 	}
@@ -43,4 +51,8 @@ func translateMissing(lang language, texts []string, initMode bool) ([]string, e
 	}
 	libreKey := os.Getenv("LIBRETRANSLATE_API_KEY")
 	return callLibreTranslate(libreURL, libreKey, texts, lang.Code)
+}
+
+func translateMissing(lang language, texts []string, initMode bool) ([]string, error) {
+	return defaultTranslator.Translate(lang, texts, initMode)
 }
