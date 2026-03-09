@@ -22,7 +22,7 @@ func main() {
 	defer signal.Stop(sigChan)
 	go func() {
 		sig := <-sigChan
-		slog.Debug(fmt.Sprintf("system signal received: %v", sig))
+		slog.Debug("system signal received", "signal", sig)
 		cancel()
 	}()
 

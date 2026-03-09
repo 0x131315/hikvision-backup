@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -85,7 +84,8 @@ func (api *ApiClient) GetVideoList() VideoList {
 
 			cnt += len(resp.MatchList)
 			slog.Debug("requested file info",
-				"count", fmt.Sprintf("%d/%d", cnt, resp.TotalMatches),
+				"count", cnt,
+				"total_matches", resp.TotalMatches,
 				"total", len(listVideos)+len(resp.MatchList),
 			)
 
@@ -157,7 +157,8 @@ func (api *ApiClient) getVideoListUnbounded() VideoList {
 
 		cnt += len(resp.MatchList)
 		slog.Debug("requested file info",
-			"count", fmt.Sprintf("%d/%d", cnt, resp.TotalMatches),
+			"count", cnt,
+			"total_matches", resp.TotalMatches,
 			"total", len(listVideos)+len(resp.MatchList),
 		)
 

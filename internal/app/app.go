@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"math"
@@ -64,7 +63,11 @@ func (app *App) DownloadVideos() {
 			default:
 			}
 
-			slog.Info(fmt.Sprintf("Request remote file: %d/%d. Left: %d", idx+1, len(dates), len(dates)-(idx+1)))
+			slog.Info("request remote file",
+				"current", idx+1,
+				"total", len(dates),
+				"left", len(dates)-(idx+1),
+			)
 			app.saveVideo(videos[date])
 		}
 	}()
@@ -83,7 +86,8 @@ func (app *App) saveVideo(video api.Video) {
 			return
 		}
 		slog.Debug("file invalid",
-			"loaded", fmt.Sprintf("%s/%s", util.FormatFileSize(filesize), util.FormatFileSize(file.size)),
+			"loaded", util.FormatFileSize(filesize),
+			"expected", util.FormatFileSize(file.size),
 			"diff", util.FormatFileSize(int(math.Abs(float64(file.size-filesize)))),
 		)
 		fs.RemoveFile(file.path)
@@ -147,7 +151,7 @@ func (app *App) saveVideo(video api.Video) {
 			slog.Debug("bad file skipped", "file", file.name)
 			break
 		}
-		slog.Debug(fmt.Sprintf("retry: %d/%d", badCnt, retryCnt))
+		slog.Debug("retry download", "attempt", badCnt, "max", retryCnt)
 		fs.RemoveFile(file.path)
 	}
 	filesize := fs.FileSize(file.path)
@@ -159,7 +163,8 @@ func (app *App) saveVideo(video api.Video) {
 	slog.Debug("validate")
 	if filesize != streamSize {
 		slog.Error("file size mismatch",
-			"loaded", fmt.Sprintf("%s/%s", util.FormatFileSize(filesize), util.FormatFileSize(streamSize)),
+			"loaded", util.FormatFileSize(filesize),
+			"expected", util.FormatFileSize(streamSize),
 			"diff", util.FormatFileSize(int(math.Abs(float64(streamSize-filesize)))),
 		)
 		fs.RemoveFile(file.path)
