@@ -105,6 +105,12 @@ Required vars have no default and must be set.
    ./hikvision-backup -vvv
 ```
 
+Also supported:
+```bash
+   ./hikvision-backup --verbose
+   ./hikvision-backup --verbose-http
+```
+
 ---
 
 
