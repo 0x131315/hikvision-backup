@@ -30,6 +30,13 @@ NEW_VERSION_BETA := $(NEW_VERSION_PATCH)-beta
 COMMIT  ?= $(shell git rev-parse --short HEAD)
 DATE    ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
+I18N_TOOL_DIR ?= tools/readme-i18n-sync
+I18N_SOURCE ?= ../../README.md
+I18N_OUT_DIR ?= ../../i18n
+I18N_TM_DIR ?=
+I18N_PUBLISH_REMOTE ?= readme-i18n-sync
+I18N_RUN_BASE = cd $(I18N_TOOL_DIR) && go run ./cmd/readme-i18n-sync --source $(I18N_SOURCE) --i18n-dir $(I18N_OUT_DIR) $(if $(I18N_TM_DIR),--tm-dir $(I18N_TM_DIR),)
+
 LDFLAGS_STRING = -X 'main.version=${VERSION}' -X 'main.commit=${COMMIT}' -X 'main.buildDate=${DATE}'
 LDFLAGS = -ldflags="${LDFLAGS_STRING}"
 
@@ -84,7 +91,7 @@ define CHECK_PRE_RELEASE
 	@$(MAKE) i18n-check
 endef
 
-.PHONY: build test fmt fmt-check i18n-update i18n-check i18n-sync prepare-release next-alpha next-beta next-patch next-minor next-major release
+.PHONY: build test fmt fmt-check i18n-tool-test i18n-update i18n-check i18n-sync i18n-publish prepare-release next-alpha next-beta next-patch next-minor next-major release
 # Build binary with version/commit/date baked via ldflags
 build:
 	@echo "==> Building ${APP_NAME}..."
@@ -112,17 +119,22 @@ fmt-check:
 # Update translations (requires DEEPL_API_KEY)
 i18n-update:
 	@echo "==> Updating translations..."
-	cd tools/readme-i18n-sync && go run ./cmd/readme-i18n-sync --source ../../README.md --i18n-dir ../../i18n $(if $(I18N_FORCE),--force)
+	$(I18N_RUN_BASE) $(if $(I18N_FORCE),--force)
 
 # Check translations (no API calls)
 i18n-check:
 	@echo "==> Checking translations..."
-	cd tools/readme-i18n-sync && go run ./cmd/readme-i18n-sync --source ../../README.md --i18n-dir ../../i18n --check
+	$(I18N_RUN_BASE) --check
+
+# Run tests for the standalone i18n module
+i18n-tool-test:
+	@echo "==> Testing readme-i18n-sync module..."
+	cd $(I18N_TOOL_DIR) && go test ./...
 
 # Update translations and commit changes (run before tagging)
 i18n-sync:
 	@echo "==> Updating translations and committing..."
-	cd tools/readme-i18n-sync && go run ./cmd/readme-i18n-sync --source ../../README.md --i18n-dir ../../i18n $(if $(I18N_FORCE),--force)
+	$(I18N_RUN_BASE) $(if $(I18N_FORCE),--force)
 	@$(MAKE) i18n-check
 	@if ! git diff --quiet; then \
 		git add i18n/README.*.md i18n/tm/README.*.json; \
@@ -130,6 +142,11 @@ i18n-sync:
 	else \
 		echo "No translation changes to commit."; \
 	fi
+
+# Publish nested module subtree to standalone repository
+i18n-publish:
+	@echo "==> Publishing readme-i18n-sync to $(I18N_PUBLISH_REMOTE)..."
+	REPO_REMOTE=$(I18N_PUBLISH_REMOTE) $(I18N_TOOL_DIR)/scripts/publish-subtree.sh
 
 .PHONY: bump
 # Update deps + vendor + commit in one step
