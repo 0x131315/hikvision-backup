@@ -94,4 +94,4 @@ cp .env.dist .env
 
 ## Release Process
 
-See `RELEASE.md` for release workflow and tagging rules.
+See [RELEASE.md](RELEASE.md) for release workflow and tagging rules.
