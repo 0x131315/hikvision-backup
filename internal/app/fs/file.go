@@ -1,12 +1,13 @@
 package fs
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 )
 
-func Init(downloadDir string) {
-	createDir(downloadDir)
+func Init(downloadDir string) error {
+	return createDir(downloadDir)
 }
 
 func RemoveFile(path string) {
@@ -56,22 +57,24 @@ func isDirExist(path string) bool {
 	return true
 }
 
-func createDir(path string) {
+func createDir(path string) error {
 	if isDirExist(path) {
-		return
+		return nil
 	}
 	err := os.MkdirAll(path, 0755)
 	if err != nil {
 		slog.Error("Failed to create a directory", "path", path, "error", err)
-		return
+		return err
 	}
 	slog.Debug("Directory created", "path", path)
+	return nil
 }
 
 func getPathInfo(path string) (os.FileInfo, error) {
 	info, err := os.Stat(path)
 	if err != nil && !os.IsNotExist(err) {
 		slog.Error("Failed check path", "path", path, "error", err)
+		return nil, fmt.Errorf("failed to stat path %s: %w", path, err)
 	}
 	return info, err
 }

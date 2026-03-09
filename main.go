@@ -44,7 +44,10 @@ func main() {
 	if App == nil {
 		os.Exit(1)
 	}
-	fs.Init(App.Conf().DownloadDir)
+	if err := fs.Init(App.Conf().DownloadDir); err != nil {
+		slog.Error("failed to initialize download directory", "error", err)
+		os.Exit(1)
+	}
 
 	App.DownloadVideos()
 
