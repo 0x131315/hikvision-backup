@@ -27,6 +27,7 @@ func newRootCmd() *cobra.Command {
 	var showVersion bool
 	var verbose bool
 	var verboseHTTP bool
+	configFlags := &configFlagOverrides{}
 
 	cmd := &cobra.Command{
 		Use:          "hikvision-backup",
@@ -37,6 +38,10 @@ func newRootCmd() *cobra.Command {
 				printFeatureList()
 				printVersion()
 				return nil
+			}
+
+			if err := applyConfigFlagOverrides(cmd.Flags(), configFlags); err != nil {
+				return err
 			}
 
 			logLvl := slog.LevelInfo
@@ -52,6 +57,7 @@ func newRootCmd() *cobra.Command {
 			return run(logLvl, logHttp)
 		},
 	}
+	addConfigFlags(cmd, configFlags)
 
 	cmd.Flags().BoolVarP(&showVersion, "version", "v", false, "Print version and exit")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "Enable debug logging")
@@ -113,6 +119,6 @@ func printFeatureList() {
 	fmt.Print("- automatic repair of broken or incomplete files\n")
 	fmt.Print("- connection error compensation\n")
 	fmt.Print("- search for new videos in the last N days\n")
-	fmt.Print("- support for env-variables and .env files\n")
+	fmt.Print("- support for .env, environment variables, and CLI flags\n")
 	fmt.Print("\n")
 }

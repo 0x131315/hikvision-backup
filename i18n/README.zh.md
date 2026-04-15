@@ -53,31 +53,41 @@ cp .env.dist .env
 
 ＃＃ 配置
 
-该应用会从 `.env` 文件和环境变量中读取设置。
+该应用按以下顺序读取设置：
 
-环境变量的优先级高于 `.env` 文件。
+1. `.env` 文件
 
-| 多变的 | 必需的 | 默认 | 例子 | 描述 |
-|---|---|---|---|---|
-| `DOWNLOAD_DIR` | Yes | - | `/home/user/camera_videos` | 下载视频的本地文件夹 |
-| `CAM_HOST` | Yes | - | `192.168.1.10`，`https://cam.local:8443` | 摄像头主机或完整 URL。如果未设置协议，则使用 `https://`。 |
-| `CAM_USER` | Yes | - | `admin` | 相机用户名 |
-| `CAM_PASS` | No | empty | `secret` | 相机密码 |
-| `CAM_INSECURE_SKIP_VERIFY` | No | `false` | `true` | 跳过 TLS 证书检查。仅在受信任的网络中使用。 |
-| `SCAN_LAST_DAYS` | No | `0` | `3` | 仅扫描最近 N 天的视频。`0` 表示无限制。 |
-| `SCAN_FROM_LOCAL_LATEST` | No | `0` | `2` | 查找该日期后 N 天内的最新本地视频和扫描信息 |
-| `HTTP_RETRY_CNT` | No | `3` | `5` | 请求错误（`5xx`、`401`、`403`）的重试次数 |
-| `HTTP_TIMEOUT` | No | `120` | `30` | HTTP 超时时间（秒）。`0` 表示无超时限制。 |
-| `NO_PROXY` | No | `false` | `true` | 忽略环境变量中的代理设置 |
+2. 环境变量
+
+3. 命令行选项
+
+最后的信息来源胜出。
+
+| 多变的 | CLI 选项 | 必需的 | 默认 | 例子 | 描述 |
+|---|---|---|---|---|---|
+| `DOWNLOAD_DIR` | `--download-dir`，`-d` | Yes | - | `/home/user/camera_videos` | 下载视频的本地文件夹 |
+| `CAM_HOST` | `--cam-host`，`-H` | Yes | - | `192.168.1.10`，`https://cam.local:8443` | 摄像头主机或完整 URL。如果未设置协议，则使用 `https://`。 |
+| `CAM_USER` | `--cam-user`，`-u` | Yes | - | `admin` | 相机用户名 |
+| `CAM_PASS` | `--cam-pass`，`-p` | No | empty | `secret` | 相机密码 |
+| `CAM_INSECURE_SKIP_VERIFY` | `--cam-insecure-skip-verify`，`-k` | No | `false` | `true` | 跳过 TLS 证书检查。仅在受信任的网络中使用。 |
+| `SCAN_LAST_DAYS` | `--scan-last-days`, `-s` | No | `0` | `3` | 仅扫描最近 N 天的视频。`0` 表示无限制。 |
+| `SCAN_FROM_LOCAL_LATEST` | `--scan-from-local-latest`，`-l` | No | `0` | `2` | 查找该日期后 N 天内的最新本地视频和扫描信息 |
+| `HTTP_RETRY_CNT` | `--http-retry-cnt`，`-r` | No | `3` | `5` | 请求错误（`5xx`、`401`、`403`）的重试次数 |
+| `HTTP_TIMEOUT` | `--http-timeout`，`-t` | No | `120` | `30` | HTTP 超时时间（秒）。`0` 表示无超时限制。 |
+| `NO_PROXY` | `--no-proxy`，`-P` | No | `false` | `true` | 忽略环境变量中的代理设置 |
 
 ## CLI 参考
 
 | 选项 | 日志级别 | 用例 |
 |---|---|---|
 | （无标志） | Info | 日常运行 |
-| `--verbose`，`-vv` | Debug | 调试应用程序行为 |
-| `--verbose-http`，`-vvv` | 调试 + HTTP 跟踪 | 调试相机 API 请求 |
+| `--verbose` | Debug | 调试应用程序行为 |
+| `--verbose-http` | 调试 + HTTP 跟踪 | 调试相机 API 请求 |
 | `-v`，`--version` | 不跑 | 显示版本信息并退出 |
+
+配置选项使用与环境变量键相同的名称，并采用 kebab-case 命名法。
+
+旧版别名 `-vv` 和 `-vvv` 仍然适用于调试模式。
 
 使用模式：
 
@@ -86,6 +96,10 @@ cp .env.dist .env
 ./hikvision-backup
 
 ./hikvision-backup --verbose
+
+./hikvision-backup --cam-host=192.168.1.10 --cam-user=admin --download-dir=/data/cam
+
+./hikvision-backup -H 192.168.1.10 -u admin -d /data/cam -s 3
 
 ./hikvision-backup --verbose-http
 
